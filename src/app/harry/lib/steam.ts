@@ -6,3 +6,10 @@ export interface SteamGame {
   playtime_forever: number;
   img_icon_url: string;
 }
+
+export interface SteamUserData {
+  steamId: string;
+  username: string;
+  avatarUrl: string;
+  mostPlayedGames: SteamGame[];
+}
