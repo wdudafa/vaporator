@@ -8,6 +8,7 @@ export type ConnectionData = {
   picks: { appId: number; name: string; similarity: number }[];
   connections: {
     weighted: boolean;
+    layout?: { appid: number; x: number; y: number; z: number }[];
     pairs: { source: { appid: number; name: string }; target: { appid: number; name: string }; similarity: number }[];
     groups: { appids: number[]; weights: number[]; matches: { appid: number; name: string; similarity: number }[] }[];
   };
@@ -31,8 +32,9 @@ export default function Connections({ onData }: { onData: (data: ConnectionData)
     async function load() {
       const key = `recommendations:${username}:${weighted}`;
       let result: ConnectionData;
-      const cached = sessionStorage.getItem(key);
-      if (cached) result = JSON.parse(cached);
+      const stored = sessionStorage.getItem(key);
+      const cached = stored ? JSON.parse(stored) : null;
+      if (cached?.connections?.layout) result = cached;
       else {
         const response = await fetch(`/api/recommendations?username=${encodeURIComponent(username!)}&weighted=${weighted}`, { signal: controller.signal });
         const body = await response.json();

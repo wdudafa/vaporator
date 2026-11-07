@@ -1,5 +1,6 @@
 "use client";
 
+import SteamGameInfo from "./SteamGameInfo";
 import type { GraphSelection } from "../graph-data";
 
 export default function ConnectionDetails({ selection, onClose }: { selection: GraphSelection; onClose: () => void }) {
@@ -9,7 +10,7 @@ export default function ConnectionDetails({ selection, onClose }: { selection: G
     <button onClick={onClose} className="float-right rounded bg-slate-700 px-2 py-1" aria-label="Close connection details">Close</button>
     <h2 className="text-lg font-semibold pr-14">{selection.title}</h2>
     {selection.roles.map(role => <p key={role} className="text-sm text-teal-300 mt-2">{role}</p>)}
-    {selection.appid && <a className="inline-block my-3 underline" href={`https://store.steampowered.com/app/${selection.appid}/`} target="_blank" rel="noreferrer">View game on Steam ↗</a>}
+    {selection.appid && <SteamGameInfo key={selection.appid} appid={selection.appid} />}
     {selection.connections.length === 0 && <p>No recommendation connections for this game.</p>}
     {selection.connections.map((detail, i) => <section key={i} className="border-t border-slate-600 mt-3 pt-3 text-sm">
       <p className="text-xs uppercase text-slate-400">{detail.kind}</p>

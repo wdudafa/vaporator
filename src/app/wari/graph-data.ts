@@ -27,9 +27,23 @@ export function prepareGraph(coordinates: ArrayBuffer, data: ConnectionData | nu
     z.push(Number(table.getChild("z")!.get(i)));
   }
   const indices = new Map(ids.map((id, index) => [id, index]));
+  // Keep the full map. Personal games share the API's embedding projection;
+  // the rest of the catalogue remains as background context.
+  for (const game of data?.connections.layout ?? []) {
+    const id = String(game.appid);
+    let index = indices.get(id);
+    if (index === undefined) {
+      index = ids.length;
+      indices.set(id, index);
+      ids.push(id);
+    }
+    x[index] = game.x * 0.7 + 0.5;
+    y[index] = game.y * 0.7 + 0.5;
+    z[index] = game.z * 0.7 + 0.5;
+  }
   const labels = ids.map(() => "");
-  const colors: string[] = ids.map(() => data ? "#202d45" : "#63769c");
-  const sizes: number[] = ids.map(() => data ? 1.5 : 3);
+  const colors: string[] = ids.map(() => "#63769c");
+  const sizes: number[] = ids.map(() => 3);
   const personal = new Set<number>();
   const sources: number[] = [], targets: number[] = [], linkColors: string[] = [];
   const widths: number[] = [], styles: number[] = [];
@@ -92,7 +106,7 @@ export function prepareGraph(coordinates: ArrayBuffer, data: ConnectionData | nu
         kind: "Game similarity", description: "Direct cosine similarity between your two most played games.",
         similarity: pair.similarity, games: [pair.source, pair.target],
       };
-      edge(a, b, "#79e2d1", 6, 0, detail);
+      edge(a, b, "#79e2d1", 2, 0, detail);
     }
     for (const group of data.connections.groups) {
       const members = group.appids.map(id => indices.get(String(id)));
@@ -110,34 +124,15 @@ export function prepareGraph(coordinates: ArrayBuffer, data: ConnectionData | nu
       const blendLabel = games.map(game => `${game.name} ${(game.weight * 100).toFixed(0)}%`).join(" / ");
       const blend = marker(`blend:${group.appids.join(":")}`, blendLabel, position, blendDetail);
       // No source-to-blend spokes: those overlapped the direct pair edges.
-      group.matches.forEach((game, i) => {
+      group.matches.slice(0, 1).forEach((game, i) => {
         const target = indices.get(String(game.appid));
         if (target === undefined) return;
         const detail: ConnectionDetail = { title: `${title} / ${game.name}`, kind: "Recommendation",
           description: `Recommendation #${i + 1} for this ${data.connections.weighted ? "playtime-weighted" : "equal"} blend.`,
           similarity: game.similarity, games, matches: [game] };
-        edge(blend, target, i === 0 ? "#f472b6" : "#fbbf24", i === 0 ? 4 : 2.5, 1, detail);
+        edge(blend, target, "#f472b6", 1.5, 1, detail);
       });
-      if (group.appids.length === data.basedOn.length) {
-        data.picks.forEach(game => {
-          const index = indices.get(String(game.appId));
-          if (index === undefined) return;
-          // /similar uses an equal blend; don't mislabel it as weighted.
-          const detail: ConnectionDetail = { title: game.name, kind: "Recommendation",
-            description: "Overall recommendation from the equal blend of your most played games.",
-            similarity: game.similarity, games: games.map(game => ({ ...game, weight: 1 / games.length })),
-            matches: [{ appid: game.appId, name: game.name, similarity: game.similarity }] };
-          // Equal mode already draws these recommendations through the joint blend.
-          if (!data.connections.weighted && group.matches.some(match => match.appid === game.appId)) return;
-          if (data.connections.weighted) {
-            const equalPosition = [x, y, z].map(axis => members.reduce<number>((sum, index) => sum + axis[index!] / members.length, 0));
-            const equalId = `overall:${group.appids.join(":")}`;
-            const overall = indices.get(equalId) ?? marker(equalId, "Overall recommendations", equalPosition,
-              { ...blendDetail, title: "Overall equal blend", games: detail.games });
-            edge(overall, index, "#fbbf24", 3, 1, detail);
-          } else edge(blend, index, "#fbbf24", 3, 1, detail);
-        });
-      }
+
     }
   }
   const strings = (values: string[]) => vectorFromArray(values, new Utf8());

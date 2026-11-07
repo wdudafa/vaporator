@@ -14,20 +14,6 @@ export async function GET(request: NextRequest) {
     const games = user.mostPlayedGames.slice(0, 3);
     const apiUrl = (process.env.GAMES_API_URL || "http://127.0.0.1:8000");
     stage = `Game API at ${apiUrl}`;
-    const response = await fetch(`${apiUrl}/similar?limit=3`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(games.map(game => game.appid)),
-      signal: AbortSignal.timeout(60000),
-    });
-    if (!response.ok) {
-      const body = await response.json().catch(() => ({}));
-      console.error("Game API failed", response.status, body);
-      const missing = body.detail?.missing_appids;
-      return NextResponse.json({ error: missing
-        ? `Games missing from the similarity database: ${missing.join(", ")}.`
-        : `Game API returned HTTP ${response.status}: ${JSON.stringify(body.detail ?? "Unknown error")}` }, { status: 502 });
-    }
     const connectionsResponse = await fetch(`${apiUrl}/connections`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -43,7 +29,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: `Connections unavailable: ${JSON.stringify(detail.detail ?? connectionsResponse.status)}` }, { status: 502 });
     }
     const connections = await connectionsResponse.json();
-    const matches: { appid: number; name: string; similarity: number }[] = await response.json();
+    const matches: { appid: number; name: string; similarity: number }[] =
+      connections.groups.find((group: { appids: number[] }) => group.appids.length === games.length)?.matches ?? [];
     const picks = await Promise.all(matches.map(async game => {
       const details = await fetch(`https://store.steampowered.com/api/appdetails?appids=${game.appid}&cc=gb&l=english`, {
         next: { revalidate: 3600 }, signal: AbortSignal.timeout(5000),

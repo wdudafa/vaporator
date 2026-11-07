@@ -207,10 +207,10 @@ export default function Home() {
           if (abort.signal.aborted) return;
 
           setError(false);
-          setStatus(`${pointsCount.toLocaleString()} nodes · ${prepared.links?.numRows ?? 0} connections`);
+          setStatus(`${pointsCount.toLocaleString()} nodes · ${prepared.links?.numRows ?? 0} connections${connectionData?.connections.layout ? " · 3D projection; cosine scores in details" : ""}`);
           if (!fitted && graph && prepared.personal.length) {
             fitted = true;
-            graph.fitViewByIndices(prepared.personal, 500, 0.25);
+            graph.fitView(500, 0.06);
             setSelectionMessage(prepared.missing.length
               ? `Missing map coordinates: ${prepared.missing.join(", ")}`
               : "");
