@@ -5,11 +5,9 @@ export default async function Home() {
   const jsonResponse = await getMostPlayedGameIds(steamId, 5);
 
   return (
-    <main className="p-8 max-w-lg mx-auto">
-      <h1 className="text-xl font-bold mb-4">Most Played Game IDs</h1>
-      <pre className="p-4 bg-gray-900 text-green-400 rounded-lg overflow-x-auto font-mono text-sm">
+    <main>
+      <h1>Most Played Game IDs</h1>
         {JSON.stringify(JSON.parse(jsonResponse), null, 2)}
-      </pre>
     </main>
   );
 }
