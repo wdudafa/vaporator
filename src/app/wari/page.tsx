@@ -1,100 +1,66 @@
 "use client";
 import { useEffect, useState } from "react";
-import { NodeObject } from "react-force-graph-3d";
+import {
+  Cosmograph,
+  CosmographProvider,
+  prepareCosmographData,
+} from "@cosmograph/react";
+import type { CosmographConfig } from "@cosmograph/react";
 
-const nodeRelSize = 20;
-const numberOfNodes = 15;
+const numberOfPoints = 150000;
+const rawPoints = Array.from({ length: numberOfPoints }, (_, i) => ({
+  id: String(i),
+}));
 
-const colours = {
-  1: "red",
-  2: "blue",
-  3: "green",
-  4: "orange",
-};
-
-const colourValues = Object.values(colours);
-
-const graphData: { nodes: NodeObject[]; links: [] } = {
-  nodes: [],
-  links: [],
-};
-
-for (let i = 0; i < numberOfNodes; i++) {
-  graphData.nodes.push({
-    id: String(i),
-    color: colourValues[i % colourValues.length],
-  });
-}
+const rawLinks: any[] = [];
+// const rawLinks = Array.from({ length: numberOfPoints }, (_, i) => ({
+//   source: String(i),
+//   target: String((i + 1) % numberOfPoints),
+// }));
 
 export default function Home() {
-  const [openSideBar, setOpenSidebar] = useState<string | null>(null);
-  const [highlightedColor, setHighlightedColor] = useState<string | null>(null);
-  const [ForceGraph3D, setForceGraph3D] = useState<
-    typeof import("react-force-graph-3d").default | null
-  >(null);
+  const [config, setConfig] = useState<CosmographConfig>({});
 
-  useEffect(() => {
-    import("react-force-graph-3d").then((module) => {
-      setForceGraph3D(() => module.default);
-    });
-  }, []);
-
-  const highlightNodes = (color: string) => {
-    setHighlightedColor((currentColor) =>
-      currentColor === color ? null : color,
-    );
+  // Create a config to map your data into Cosmograph's internal format
+  const dataConfig = {
+    points: {
+      pointIdBy: "id",
+    },
+    links: {
+      linkSourceBy: "source",
+      linkTargetsBy: ["target"],
+    },
   };
 
+  const loadData = async (): Promise<void> => {
+    // Prepare data and config for Cosmograph
+    const result = await prepareCosmographData(dataConfig, rawPoints, rawLinks);
+
+    if (result) {
+      // Update Cosmograph config with prepared output
+      const { points, links, cosmographConfig } = result;
+      setConfig({
+        points,
+        links,
+        ...cosmographConfig,
+        spaceDimensions: 3,
+        pointDefaultSize: 10,
+        pointSphereShading: true,
+        enableZoom: true,
+      });
+    }
+  };
+
+  // Load data when component is mounted
+  useEffect(() => {
+    loadData();
+  }, []);
+
   return (
-    <main className="relative h-screen w-full">
-      <aside
-        aria-hidden={openSideBar === null}
-        className={`absolute left-0 top-0 z-10 h-full w-72 bg-zinc-900 transition-transform duration-300 ease-in-out`}
-      >
-        <div>
-          {colourValues.map((color) => (
-            <button
-              key={color}
-              aria-pressed={highlightedColor === color}
-              className="px-3 py-2 text-white"
-              style={{ backgroundColor: color }}
-              onClick={() => highlightNodes(color)}
-            >
-              {`Highlight ${color} nodes`}
-            </button>
-          ))}
-        </div>
-      </aside>
-
-      <aside
-        aria-hidden={openSideBar === null}
-        className={`absolute right-0 top-0 z-10 h-full w-72 bg-zinc-900 transition-transform duration-300 ease-in-out ${
-          openSideBar === null
-            ? "pointer-events-none translate-x-full"
-            : "translate-x-0"
-        }`}
-      >
-        <button onClick={() => setOpenSidebar(null)}>Close</button>
-        {openSideBar !== null && <p>Node: {openSideBar}</p>}
-      </aside>
-
-      {ForceGraph3D && (
-        <ForceGraph3D
-          graphData={graphData}
-          nodeColor={(node) =>
-            highlightedColor !== null && node.color !== highlightedColor
-              ? "grey"
-              : String(node.color)
-          }
-          nodeLabel="id"
-          onNodeClick={(node) => {
-            setOpenSidebar(String(node.id));
-          }}
-          enableNodeDrag={false}
-          backgroundColor="#080d18"
-          nodeRelSize={nodeRelSize}
-        />
-      )}
-    </main>
+    <CosmographProvider>
+      <div className="h-screen w-full">
+        <Cosmograph {...config} style={{ height: "100%", width: "100%" }} />
+      </div>
+    </CosmographProvider>
   );
 }

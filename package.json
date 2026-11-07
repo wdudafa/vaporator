@@ -10,6 +10,8 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@cosmograph/react": "^2.5.1",
+    "@cosmos.gl/graph": "^3.6.0",
     "next": "16.4.5",
     "react": "19.3.0",
     "react-dom": "19.3.0",
