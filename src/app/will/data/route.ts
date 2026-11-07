@@ -1,4 +1,4 @@
-import coordinates from "../../../../coords_rand.json";
+import coordinates from "../../../../11k_coords.json";
 import { tableFromArrays, tableToIPC, vectorFromArray, Utf8 } from "apache-arrow";
 
 // Pre-index on the server and send Arrow directly to Cosmograph. This avoids

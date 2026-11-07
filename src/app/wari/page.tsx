@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import type { CSSProperties } from "react";
+import type { CSSProperties, FormEvent } from "react";
 import type {
   Cosmograph as CosmographInstance,
   CosmographConfig,
@@ -21,11 +21,54 @@ export default function Home() {
   const hostRef = useRef<HTMLDivElement>(null);
   const resetRef = useRef<(() => void) | null>(null);
   const sizeRef = useRef<((value: number) => void) | null>(null);
+  const graphRef = useRef<CosmographInstance | null>(null);
 
   const [status, setStatus] = useState("Loading coordinates…");
   const [error, setError] = useState(false);
-  const [size, setSize] = useState<number>(3);
+  const [size, setSize] = useState<number>(100);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  const [nodeIdsInput, setNodeIdsInput] = useState("");
+  const [selectionMessage, setSelectionMessage] = useState("");
+
+  const handleHighlightSubmit = async (
+    event: FormEvent<HTMLFormElement>,
+  ): Promise<void> => {
+    event.preventDefault();
+
+    const graph = graphRef.current;
+    if (graph === null) {
+      setSelectionMessage("The graph is not ready yet.");
+      return;
+    }
+
+    const ids = [...new Set(nodeIdsInput.split(/[,\s]+/).filter(Boolean))];
+    if (ids.length === 0) {
+      setSelectionMessage("Enter one or more node IDs.");
+      return;
+    }
+
+    try {
+      const indices = await graph.getPointIndicesByIds(ids);
+      if (!indices?.length) {
+        setSelectionMessage("No matching node IDs found.");
+        return;
+      }
+
+      graph.selectPoints(indices, false, false);
+      graph.fitViewByIndices(indices, 500, 0.15);
+
+      const missingCount = ids.length - indices.length;
+      setSelectionMessage(
+        `${indices.length} node${indices.length === 1 ? "" : "s"} highlighted and fitted${
+          missingCount > 0 ? `; ${missingCount} ID${missingCount === 1 ? "" : "s"} not found` : ""
+        }.`,
+      );
+    } catch (cause: unknown) {
+      setSelectionMessage(
+        cause instanceof Error ? cause.message : "Unable to highlight nodes.",
+      );
+    }
+  };
 
   useEffect(() => {
     const host = hostRef.current;
@@ -98,12 +141,17 @@ export default function Home() {
         onPointClick: (index) => {
           if (graph === null) return;
 
+          graph.selectPoints([index], false, false);
+          graph.fitViewByIndices([index], 500, 0.15);
+
           void graph
             .getPointIdsByIndices([index])
             .then((ids) => {
               const id = ids?.[0];
               if (id !== undefined) {
-                setSelectedNodeId(String(id));
+                const nodeId = String(id);
+                setSelectedNodeId(nodeId);
+                setNodeIdsInput(nodeId);
               }
             })
             .catch(fail);
@@ -124,6 +172,7 @@ export default function Home() {
       const instance: CosmographInstance = new Cosmograph(host, config);
 
       graph = instance;
+      graphRef.current = instance;
 
       resetRef.current = (): void => {
         if (abort.signal.aborted) return;
@@ -155,6 +204,7 @@ export default function Home() {
 
       resetRef.current = null;
       sizeRef.current = null;
+      graphRef.current = null;
 
       if (graph !== null) {
         void graph.destroy();
@@ -259,6 +309,36 @@ export default function Home() {
         <p style={{ margin: 0, color: "#9eafc5" }}>
           Drag to orbit · Scroll to zoom · Shift-drag to pan
         </p>
+
+        <form
+          onSubmit={handleHighlightSubmit}
+          style={{
+            display: "flex",
+            flexWrap: "wrap",
+            alignItems: "center",
+            gap: 8,
+          }}
+        >
+          <label htmlFor="node-ids">Node IDs</label>
+          <input
+            id="node-ids"
+            type="text"
+            value={nodeIdsInput}
+            placeholder="One or more IDs, comma-separated"
+            onChange={(event) => setNodeIdsInput(event.currentTarget.value)}
+          />
+          <button type="submit">Highlight &amp; fit</button>
+          <button
+            type="button"
+            onClick={() => {
+              graphRef.current?.unselectAllPoints();
+              setSelectionMessage("Node highlights cleared.");
+            }}
+          >
+            Clear highlights
+          </button>
+          {selectionMessage && <span role="status">{selectionMessage}</span>}
+        </form>
 
         <div
           style={{
