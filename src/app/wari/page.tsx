@@ -153,7 +153,6 @@ export default function Home() {
 
           graph.selectPoints([index], false, false);
           selectedSizeRef.current?.([index]);
-          graph.fitViewByIndices([index], 500, 0.15);
 
           void graph
             .getPointIdsByIndices([index])
@@ -162,7 +161,6 @@ export default function Home() {
               if (id !== undefined) {
                 const nodeId = String(id);
                 setSelectedNodeId(nodeId);
-                setNodeIdsInput(nodeId);
               }
             })
             .catch(fail);
