@@ -64,7 +64,9 @@ export default function Home() {
       const missingCount = ids.length - indices.length;
       setSelectionMessage(
         `${indices.length} node${indices.length === 1 ? "" : "s"} highlighted and fitted${
-          missingCount > 0 ? `; ${missingCount} ID${missingCount === 1 ? "" : "s"} not found` : ""
+          missingCount > 0
+            ? `; ${missingCount} ID${missingCount === 1 ? "" : "s"} not found`
+            : ""
         }.`,
       );
     } catch (cause: unknown) {
@@ -128,7 +130,9 @@ export default function Home() {
 
         pointSizeBy: "appid",
         pointSizeByFn: (_value: unknown, index?: number) =>
-          index !== undefined && selectedPointIndicesRef.current.has(index) ? 12 : 3,
+          index !== undefined && selectedPointIndicesRef.current.has(index)
+            ? 12
+            : 3,
         pointDefaultSize: 3,
         pointSizeScale: 1,
         pointSphereShading: true,
@@ -191,7 +195,9 @@ export default function Home() {
             pointSizeStrategy: undefined,
             pointSizeBy: "appid",
             pointSizeByFn: (_value: unknown, index?: number) =>
-              index !== undefined && selectedPointIndicesRef.current.has(index) ? 12 : 3,
+              index !== undefined && selectedPointIndicesRef.current.has(index)
+                ? 12
+                : 3,
           })
           .catch(fail);
       };
@@ -260,11 +266,10 @@ export default function Home() {
         {status}
       </div>
 
-      
       <SideBar
-  selectedNodeId={selectedNodeId}
-  onClose={() => setSelectedNodeId(null)}
-/>
+        selectedNodeId={selectedNodeId}
+        onClose={() => setSelectedNodeId(null)}
+      />
 
       <footer
         style={{
@@ -300,8 +305,11 @@ export default function Home() {
             placeholder="One or more IDs, comma-separated"
             onChange={(event) => setNodeIdsInput(event.currentTarget.value)}
           />
-          <button type="submit">Highlight &amp; fit</button>
+          <button className="bg-green-900" type="submit">
+            Highlight &amp; fit
+          </button>
           <button
+            className="bg-red-900"
             type="button"
             onClick={() => {
               graphRef.current?.unselectAllPoints();
