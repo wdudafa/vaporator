@@ -1,6 +1,6 @@
 "use client";
-import { useState } from "react";
-import ForceGraph3D from "react-force-graph-3d";
+import { useEffect, useState } from "react";
+import { NodeObject } from "react-force-graph-3d";
 
 const colours = {
   1: "red",
@@ -9,32 +9,62 @@ const colours = {
   4: "orange",
 };
 
+const nodeRelSize = 20;
+const numberOfNodes = 15;
 const colourValues = Object.values(colours);
 
-const graphData = {
-  nodes: [{ id: "A", color: "red" }],
+const graphData: { nodes: NodeObject[]; links: [] } = {
+  nodes: [],
   links: [],
 };
 
-for (let i = 0; i < 15; i++) {
+for (let i = 0; i < numberOfNodes; i++) {
   graphData.nodes.push({
-    id: "",
+    id: String(i),
     color: colourValues[i % colourValues.length],
   });
 }
 
 export default function Home() {
-  const [openSideBar, setOpenSidebar] = useState()
+  const [openSideBar, setOpenSidebar] = useState<String | null>(null);
+  const [ForceGraph3D, setForceGraph3D] = useState<
+    typeof import("react-force-graph-3d").default | null
+  >(null);
 
-  
+  useEffect(() => {
+    import("react-force-graph-3d").then((module) => {
+      setForceGraph3D(() => module.default);
+    });
+  }, []);
+
   return (
-    <ForceGraph3D
-      graphData={graphData}
-      nodeAutoColorBy="id"
-      nodeLabel="id"
-      onNodeClick={(node) => console.log(node)}
-      enableNodeDrag
-      backgroundColor="#080d18"
-    />
+    <main className="relative h-screen w-full">
+      <aside
+        aria-hidden={openSideBar === null}
+        className={`absolute right-0 top-0 z-10 h-full w-72 bg-zinc-900 transition-transform duration-300 ease-in-out ${
+          openSideBar === null
+            ? "pointer-events-none translate-x-full"
+            : "translate-x-0"
+        }`}
+      >
+        <button onClick={() => setOpenSidebar(null)}>Close</button>
+        {openSideBar !== null && <p>Node: {openSideBar}</p>}
+      </aside>
+
+      {ForceGraph3D && (
+        <ForceGraph3D
+          graphData={graphData}
+          nodeAutoColorBy="id"
+          nodeLabel="id"
+          onNodeClick={(node) => {
+            console.log(node.id);
+            setOpenSidebar(String(node.id));
+          }}
+          enableNodeDrag
+          backgroundColor="#080d18"
+          nodeRelSize={nodeRelSize}
+        />
+      )}
+    </main>
   );
 }
