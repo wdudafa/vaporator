@@ -9,7 +9,7 @@ export default function Home() {
 
           main page type :shit
           <button className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors">
-            <a href="/harry">Go to Harry's Steam Profile</a>
+            <a href="/harry">Harry's Steam Profile</a>
           </button>
           </div>
       </main>
