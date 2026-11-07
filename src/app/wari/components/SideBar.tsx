@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import type { CSSProperties } from "react";
 
 const panel: CSSProperties = {
@@ -22,8 +23,48 @@ type SideBarProps = {
   onClose: () => void;
 };
 
+type FetchState =
+  | { status: "idle" }
+  | { status: "loading" }
+  | { status: "success"; name: string; description: string }
+  | { status: "error"; message: string };
+
 export default function SideBar({ selectedNodeId, onClose }: SideBarProps) {
   const hidden = selectedNodeId === null;
+  const [state, setState] = useState<FetchState>({ status: "idle" });
+
+  useEffect(() => {
+    if (selectedNodeId === null) return;
+
+    const controller = new AbortController();
+    setState({ status: "loading" });
+
+    const url = `/api/steam/${encodeURIComponent(selectedNodeId)}`;
+
+    fetch(url, { signal: controller.signal })
+      .then((res) => {
+        if (!res.ok) throw new Error(`Request failed (${res.status})`);
+        return res.json();
+      })
+      .then((json) => {
+        const entry = json?.[selectedNodeId];
+        if (!entry?.success) {
+          setState({ status: "error", message: "No details found for this app." });
+          return;
+        }
+        setState({
+          status: "success",
+          name: entry.data.name,
+          description: entry.data.short_description,
+        });
+      })
+      .catch((err) => {
+        if (err.name === "AbortError") return;
+        setState({ status: "error", message: err.message });
+      });
+
+    return () => controller.abort();
+  }, [selectedNodeId]);
 
   return (
     <aside
@@ -67,10 +108,31 @@ export default function SideBar({ selectedNodeId, onClose }: SideBarProps) {
           Close
         </button>
       </div>
+
       <p style={{ margin: "20px 0 6px", color: "#9eafc5" }}>Node ID</p>
       <code style={{ overflowWrap: "anywhere", color: "#79e2d1" }}>
         {selectedNodeId ?? ""}
       </code>
+
+      {state.status === "loading" && (
+        <p style={{ margin: "20px 0 0", color: "#9eafc5" }}>Loading…</p>
+      )}
+
+      {state.status === "error" && (
+        <p style={{ margin: "20px 0 0", color: "#ff8a8a" }}>{state.message}</p>
+      )}
+
+      {state.status === "success" && (
+        <>
+          <p style={{ margin: "20px 0 6px", color: "#9eafc5" }}>Name</p>
+          <div style={{ color: "#e6efff" }}>{state.name}</div>
+
+          <p style={{ margin: "20px 0 6px", color: "#9eafc5" }}>
+            Short description
+          </p>
+          <p style={{ margin: 0, color: "#e6efff" }}>{state.description}</p>
+        </>
+      )}
     </aside>
   );
 }
