@@ -27,6 +27,7 @@ for (let i = 0; i < numberOfNodes; i++) {
 
 export default function Home() {
   const [openSideBar, setOpenSidebar] = useState<String | null>(null);
+  const [blueNodesHighlighted, setBlueNodesHighlighted] = useState(false);
   const [ForceGraph3D, setForceGraph3D] = useState<
     typeof import("react-force-graph-3d").default | null
   >(null);
@@ -38,7 +39,7 @@ export default function Home() {
   }, []);
 
   const highlightNodes = () => {
-    console.log("highlighting blue nodes");
+    setBlueNodesHighlighted((highlighted) => !highlighted);
   };
 
   return (
@@ -53,7 +54,7 @@ export default function Home() {
             highlightNodes();
           }}
         >
-          Highlight the blue nodes
+          {blueNodesHighlighted ? "Show all nodes" : "Highlight the blue nodes"}
         </button>
       </aside>
 
@@ -72,7 +73,11 @@ export default function Home() {
       {ForceGraph3D && (
         <ForceGraph3D
           graphData={graphData}
-          nodeAutoColorBy="id"
+          nodeColor={(node) =>
+            blueNodesHighlighted && node.color !== "blue"
+              ? "grey"
+              : String(node.color)
+          }
           nodeLabel="id"
           onNodeClick={(node) => {
             setOpenSidebar(String(node.id));
