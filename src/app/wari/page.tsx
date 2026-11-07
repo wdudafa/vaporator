@@ -45,8 +45,8 @@ export default function Home() {
     }
 
     const ids = [...new Set(nodeIdsInput.split(/[,\s]+/).filter(Boolean))];
-    if (ids.length === 0) {
-      setSelectionMessage("Enter one or more node IDs.");
+    if (ids.length <= 1) {
+      setSelectionMessage("Enter two or more node IDs.");
       return;
     }
 
