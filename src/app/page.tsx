@@ -8,6 +8,9 @@ export default function Home() {
         <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
 
           main page type :shit
+          <button className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors">
+            <a href="/harry">Go to Harry's Steam Profile</a>
+          </button>
           </div>
       </main>
     </div>
