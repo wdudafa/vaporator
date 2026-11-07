@@ -2,6 +2,9 @@
 import { useEffect, useState } from "react";
 import { NodeObject } from "react-force-graph-3d";
 
+const nodeRelSize = 20;
+const numberOfNodes = 15;
+
 const colours = {
   1: "red",
   2: "blue",
@@ -9,8 +12,6 @@ const colours = {
   4: "orange",
 };
 
-const nodeRelSize = 20;
-const numberOfNodes = 15;
 const colourValues = Object.values(colours);
 
 const graphData: { nodes: NodeObject[]; links: [] } = {
@@ -26,8 +27,8 @@ for (let i = 0; i < numberOfNodes; i++) {
 }
 
 export default function Home() {
-  const [openSideBar, setOpenSidebar] = useState<String | null>(null);
-  const [blueNodesHighlighted, setBlueNodesHighlighted] = useState(false);
+  const [openSideBar, setOpenSidebar] = useState<string | null>(null);
+  const [highlightedColor, setHighlightedColor] = useState<string | null>(null);
   const [ForceGraph3D, setForceGraph3D] = useState<
     typeof import("react-force-graph-3d").default | null
   >(null);
@@ -38,8 +39,10 @@ export default function Home() {
     });
   }, []);
 
-  const highlightNodes = () => {
-    setBlueNodesHighlighted((highlighted) => !highlighted);
+  const highlightNodes = (color: string) => {
+    setHighlightedColor((currentColor) =>
+      currentColor === color ? null : color,
+    );
   };
 
   return (
@@ -48,14 +51,19 @@ export default function Home() {
         aria-hidden={openSideBar === null}
         className={`absolute left-0 top-0 z-10 h-full w-72 bg-zinc-900 transition-transform duration-300 ease-in-out`}
       >
-        <button
-          className="bg-red-400"
-          onClick={() => {
-            highlightNodes();
-          }}
-        >
-          {blueNodesHighlighted ? "Show all nodes" : "Highlight the blue nodes"}
-        </button>
+        <div>
+          {colourValues.map((color) => (
+            <button
+              key={color}
+              aria-pressed={highlightedColor === color}
+              className="px-3 py-2 text-white"
+              style={{ backgroundColor: color }}
+              onClick={() => highlightNodes(color)}
+            >
+              {`Highlight ${color} nodes`}
+            </button>
+          ))}
+        </div>
       </aside>
 
       <aside
@@ -74,7 +82,7 @@ export default function Home() {
         <ForceGraph3D
           graphData={graphData}
           nodeColor={(node) =>
-            blueNodesHighlighted && node.color !== "blue"
+            highlightedColor !== null && node.color !== highlightedColor
               ? "grey"
               : String(node.color)
           }
@@ -82,7 +90,7 @@ export default function Home() {
           onNodeClick={(node) => {
             setOpenSidebar(String(node.id));
           }}
-          enableNodeDrag
+          enableNodeDrag={false}
           backgroundColor="#080d18"
           nodeRelSize={nodeRelSize}
         />
