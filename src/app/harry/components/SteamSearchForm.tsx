@@ -16,7 +16,7 @@ export default function SteamSearchForm() {
 
   return (
     <form onSubmit={handleSubmit} className="flex gap-2 mb-8">
-      <div className="relative flex-grow">
+      <div className="relative grow">
         {!username && (
           <span className="absolute inset-y-0 left-4 flex items-center pointer-events-none text-gray-400 dark:text-gray-500 text-md">
             Enter Steam username or SteamID...

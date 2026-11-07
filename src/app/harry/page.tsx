@@ -16,7 +16,7 @@ export default async function SteamProfilePage({ searchParams }: PageProps) {
   return (
     <main className="p-8 max-w-2xl mx-auto">
       <h1 className="text-3xl font-extrabold mb-6 text-center">Steam Profile Lookup</h1>
-      
+
       <SteamSearchForm />
 
       {!username ? (
@@ -31,11 +31,11 @@ export default async function SteamProfilePage({ searchParams }: PageProps) {
       ) : (
         <div>
           <div className="flex items-center gap-4 mb-6 p-4 bg-gray-50 dark:bg-gray-900 rounded-lg shadow-sm">
-            <Image 
-              src={userData.avatarUrl} 
-              alt={userData.username} 
-              width={80} 
-              height={80} 
+            <Image
+              src={userData.avatarUrl}
+              alt={userData.username}
+              width={80}
+              height={80}
               className="rounded-full"
             />
             <div>

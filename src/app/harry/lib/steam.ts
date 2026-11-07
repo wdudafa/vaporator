@@ -27,7 +27,7 @@ export async function getSteamUserData(identifier: string): Promise<SteamUserDat
       { next: { revalidate: 3600 } }
     );
     const vanityData = await vanityRes.json();
-    
+
     if (vanityData.response?.success === 1) {
       steamId = vanityData.response.steamid;
     } else {
