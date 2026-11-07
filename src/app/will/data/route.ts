@@ -1,19 +1,30 @@
 import coordinates from "../../../../coords_rand.json";
+import { tableFromArrays, tableToIPC, vectorFromArray, Utf8 } from "apache-arrow";
 
-// Static binary payload: x/y/z float32 triples, little endian, 12 bytes/node.
-// Importing here also makes Next include the dataset in production deployments.
+// Pre-index on the server and send Arrow directly to Cosmograph. This avoids
+// parsing 150k JSON objects and running the Data Kit in the browser.
 export const dynamic = "force-static";
 
 export function GET() {
-  const buffer = new ArrayBuffer(coordinates.length * 12);
-  const view = new DataView(buffer);
+  const count = coordinates.length;
+  const ids = new Array<string>(count);
+  const index = new Uint32Array(count);
+  const x = new Float32Array(count);
+  const y = new Float32Array(count);
+  const z = new Float32Array(count);
   coordinates.forEach((node, index) => {
-    for (const [axis, value] of [node.x, node.y, node.z].entries()) {
+    for (const value of [node.x, node.y, node.z]) {
       if (!Number.isFinite(value)) throw new Error(`Invalid coordinate at ${index}`);
-      view.setFloat32(index * 12 + axis * 4, value, true);
     }
+    ids[index] = String(node.appid);
+    x[index] = node.x;
+    y[index] = node.y;
+    z[index] = node.z;
   });
-  return new Response(buffer, {
-    headers: { "Content-Type": "application/octet-stream" },
+  for (let i = 0; i < count; i++) index[i] = i;
+  const table = tableFromArrays({ appid: vectorFromArray(ids, new Utf8()), index, x, y, z });
+  const payload = tableToIPC(table, "stream");
+  return new Response(new Uint8Array(payload), {
+    headers: { "Content-Type": "application/vnd.apache.arrow.stream" },
   });
 }
