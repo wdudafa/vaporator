@@ -1,6 +1,7 @@
 import { getSteamUserData } from "./lib/steam";
 import SteamSearchForm from "./components/SteamSearchForm";
 import Image from "next/image";
+import Recommendations from "./components/Recommendations";
 
 interface PageProps {
   searchParams: Promise<{ username?: string }>;
@@ -59,6 +60,7 @@ export default async function SteamProfilePage({ searchParams }: PageProps) {
               })}
             </ul>
           )}
+          {userData.mostPlayedGames.length > 0 && <Recommendations key={userData.steamId} steamId={userData.steamId} />}
         </div>
       )}
     </main>

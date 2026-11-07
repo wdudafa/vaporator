@@ -8,6 +8,16 @@ const nextConfig: NextConfig = {
         protocol: 'https',
         hostname: 'avatars.steamstatic.com',
       },
+      {
+        protocol: 'https',
+        hostname: '**.steamstatic.com',
+        pathname: '/store_item_assets/**',
+      },
+      {
+        protocol: 'https',
+        hostname: '**.steamstatic.com',
+        pathname: '/steam/apps/**',
+      },
     ],
   },
   turbopack: {
