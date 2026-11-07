@@ -22,7 +22,9 @@ export default function Home() {
   const hostRef = useRef<HTMLDivElement>(null);
   const resetRef = useRef<(() => void) | null>(null);
   const sizeRef = useRef<((value: number) => void) | null>(null);
+  const selectedSizeRef = useRef<((indices: number[]) => void) | null>(null);
   const graphRef = useRef<CosmographInstance | null>(null);
+  const selectedPointIndicesRef = useRef(new Set<number>());
 
   const [status, setStatus] = useState("Loading coordinates…");
   const [error, setError] = useState(false);
@@ -56,6 +58,7 @@ export default function Home() {
       }
 
       graph.selectPoints(indices, false, false);
+      selectedSizeRef.current?.(indices);
       graph.fitViewByIndices(indices, 500, 0.15);
 
       const missingCount = ids.length - indices.length;
@@ -123,7 +126,9 @@ export default function Home() {
         pointColorStrategy: "continuous",
         pointColorPalette: ["#79e2d1", "#88baff", "#a69bff"],
 
-        pointSizeStrategy: "single",
+        pointSizeBy: "appid",
+        pointSizeByFn: (_value: unknown, index?: number) =>
+          index !== undefined && selectedPointIndicesRef.current.has(index) ? 12 : 3,
         pointDefaultSize: 3,
         pointSizeScale: 1,
         pointSphereShading: true,
@@ -143,6 +148,7 @@ export default function Home() {
           if (graph === null) return;
 
           graph.selectPoints([index], false, false);
+          selectedSizeRef.current?.([index]);
           graph.fitViewByIndices([index], 500, 0.15);
 
           void graph
@@ -175,6 +181,21 @@ export default function Home() {
       graph = instance;
       graphRef.current = instance;
 
+      selectedSizeRef.current = (indices): void => {
+        if (abort.signal.aborted) return;
+
+        selectedPointIndicesRef.current = new Set(indices);
+        void instance
+          .setConfig({
+            ...config,
+            pointSizeStrategy: undefined,
+            pointSizeBy: "appid",
+            pointSizeByFn: (_value: unknown, index?: number) =>
+              index !== undefined && selectedPointIndicesRef.current.has(index) ? 12 : 3,
+          })
+          .catch(fail);
+      };
+
       resetRef.current = (): void => {
         if (abort.signal.aborted) return;
         instance.fitView(250, 0.06);
@@ -205,6 +226,7 @@ export default function Home() {
 
       resetRef.current = null;
       sizeRef.current = null;
+      selectedSizeRef.current = null;
       graphRef.current = null;
 
       if (graph !== null) {
@@ -283,6 +305,7 @@ export default function Home() {
             type="button"
             onClick={() => {
               graphRef.current?.unselectAllPoints();
+              selectedSizeRef.current?.([]);
               setSelectionMessage("Node highlights cleared.");
             }}
           >
