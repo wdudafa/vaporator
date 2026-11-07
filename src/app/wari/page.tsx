@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useRef, useState } from "react";
@@ -39,9 +38,7 @@ export default function Home() {
 
       setError(true);
       setStatus(
-        cause instanceof Error
-          ? cause.message
-          : "Unable to start Cosmograph."
+        cause instanceof Error ? cause.message : "Unable to start Cosmograph.",
       );
     };
 
@@ -54,9 +51,7 @@ export default function Home() {
       ]);
 
       if (!response.ok) {
-        throw new Error(
-          `Could not load coordinates (${response.status}).`
-        );
+        throw new Error(`Could not load coordinates (${response.status}).`);
       }
 
       const points: ArrayBuffer = await response.arrayBuffer();
@@ -81,11 +76,7 @@ export default function Home() {
 
         pointColorBy: "z",
         pointColorStrategy: "continuous",
-        pointColorPalette: [
-          "#79e2d1",
-          "#88baff",
-          "#a69bff",
-        ],
+        pointColorPalette: ["#79e2d1", "#88baff", "#a69bff"],
 
         pointSizeStrategy: "single",
         pointDefaultSize: 3,
@@ -103,13 +94,25 @@ export default function Home() {
         fitViewDuration: 0,
         fitViewPadding: 0.06,
 
+        onPointClick: (index) => {
+          if (graph === null) return;
+
+          void graph
+            .getPointIdsByIndices([index])
+            .then((ids) => {
+              const id = ids?.[0];
+              if (id !== undefined) {
+                console.log(id);
+              }
+            })
+            .catch(fail);
+        },
+
         onGraphRebuilt: ({ pointsCount }) => {
           if (abort.signal.aborted) return;
 
           setError(false);
-          setStatus(
-            `${pointsCount.toLocaleString()} nodes · Cosmograph`
-          );
+          setStatus(`${pointsCount.toLocaleString()} nodes · Cosmograph`);
         },
 
         onGraphRebuildError: fail,
@@ -117,10 +120,7 @@ export default function Home() {
 
       // Capture the instance so callbacks cannot reference
       // a possibly undefined graph.
-      const instance: CosmographInstance = new Cosmograph(
-        host,
-        config
-      );
+      const instance: CosmographInstance = new Cosmograph(host, config);
 
       graph = instance;
 
@@ -171,10 +171,7 @@ export default function Home() {
         color: "#e6efff",
       }}
     >
-      <div
-        ref={hostRef}
-        style={{ position: "absolute", inset: 0 }}
-      />
+      <div ref={hostRef} style={{ position: "absolute", inset: 0 }} />
 
       <div
         role={error ? "alert" : "status"}
@@ -213,9 +210,7 @@ export default function Home() {
             gap: 12,
           }}
         >
-          <label htmlFor="point-size">
-            Point size
-          </label>
+          <label htmlFor="point-size">Point size</label>
 
           <input
             id="point-size"
