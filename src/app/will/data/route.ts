@@ -1,5 +1,5 @@
 import coordinates from "../../../../11k_coords.json";
-import { tableFromArrays, tableToIPC, vectorFromArray, Utf8 } from "apache-arrow";
+import { Table, tableToIPC, vectorFromArray, Utf8 } from "apache-arrow";
 
 // Pre-index on the server and send Arrow directly to Cosmograph. This avoids
 // parsing 150k JSON objects and running the Data Kit in the browser.
@@ -22,7 +22,7 @@ export function GET() {
     z[index] = node.z;
   });
   for (let i = 0; i < count; i++) index[i] = i;
-  const table = tableFromArrays({ appid: vectorFromArray(ids, new Utf8()), index, x, y, z });
+  const table = new Table({ appid: vectorFromArray(ids, new Utf8()), index: vectorFromArray(index), x: vectorFromArray(x), y: vectorFromArray(y), z: vectorFromArray(z) });
   const payload = tableToIPC(table, "stream");
   return new Response(new Uint8Array(payload), {
     headers: { "Content-Type": "application/vnd.apache.arrow.stream" },

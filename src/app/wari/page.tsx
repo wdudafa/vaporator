@@ -1,11 +1,14 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { CSSProperties, FormEvent } from "react";
 import type {
   Cosmograph as CosmographInstance,
   CosmographConfig,
 } from "@cosmograph/cosmograph";
+import Connections, { type ConnectionData } from "./components/Connections";
+import { prepareGraph, type GraphSelection } from "./graph-data";
+import ConnectionDetails from "./components/ConnectionDetails";
 import SideBar from "./components/SideBar";
 
 const overlay: CSSProperties = {
@@ -19,6 +22,8 @@ const overlay: CSSProperties = {
 };
 
 export default function Home() {
+  const [connectionData, setConnectionData] = useState<ConnectionData | null>(null);
+  const receiveData = useCallback((data: ConnectionData) => setConnectionData(data), []);
   const hostRef = useRef<HTMLDivElement>(null);
   const resetRef = useRef<(() => void) | null>(null);
   const sizeRef = useRef<((value: number) => void) | null>(null);
@@ -28,7 +33,8 @@ export default function Home() {
 
   const [status, setStatus] = useState("Loading coordinates…");
   const [error, setError] = useState(false);
-  const [size, setSize] = useState<number>(100);
+  const [size, setSize] = useState<number>(3);
+  const [selection, setSelection] = useState<GraphSelection | null>(null);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [nodeIdsInput, setNodeIdsInput] = useState("");
   const [selectionMessage, setSelectionMessage] = useState("");
@@ -108,10 +114,37 @@ export default function Home() {
 
       if (abort.signal.aborted) return;
 
-      setStatus("Preparing points…");
+      setStatus("Preparing points and connections…");
+      const prepared = prepareGraph(points, connectionData);
+      selectedPointIndicesRef.current = new Set();
+      let fitted = false;
+      let sizeScale = 1;
+      const pointSize = (_value: unknown, index?: number) =>
+        Math.max(index === undefined ? 3 : prepared.sizes[index] ?? 3,
+          index !== undefined && selectedPointIndicesRef.current.has(index) ? 12 : 0);
 
       const config: CosmographConfig = {
-        points,
+        points: prepared.points,
+        links: prepared.links,
+        linkSourceBy: "sourceId",
+        linkTargetBy: "targetId",
+        linkSourceIndexBy: "source",
+        linkTargetIndexBy: "target",
+        linkColorBy: "color",
+        linkColorStrategy: "direct",
+        linkWidthBy: "width",
+        linkWidthByFn: (value: unknown) => Number(value),
+        linkDefaultWidth: 2,
+        linkStyleBy: "style",
+        linkDefaultArrows: false,
+        onLinkClick: (index) => {
+          const detail = prepared.linkDetails[index];
+          if (!detail) return;
+          setSelectedNodeId(null);
+          setSelection({ title: detail.title, roles: [detail.kind], connections: [detail] });
+        },
+        onLinkMouseOver: () => { host.style.cursor = "pointer"; },
+        onLinkMouseOut: () => { host.style.cursor = "default"; },
         pointIdBy: "appid",
         pointIndexBy: "index",
         pointXBy: "x",
@@ -124,15 +157,10 @@ export default function Home() {
 
         backgroundColor: "#080d18",
 
-        pointColorBy: "z",
-        pointColorStrategy: "continuous",
-        pointColorPalette: ["#79e2d1", "#88baff", "#a69bff"],
-
-        pointSizeBy: "appid",
-        pointSizeByFn: (_value: unknown, index?: number) =>
-          index !== undefined && selectedPointIndicesRef.current.has(index)
-            ? 12
-            : 3,
+        pointColorBy: "color",
+        pointColorStrategy: "direct",
+        pointSizeBy: "size",
+        pointSizeByFn: pointSize,
         pointDefaultSize: 3,
         pointSizeScale: 1,
         pointSphereShading: true,
@@ -140,8 +168,13 @@ export default function Home() {
 
         pixelRatio: Math.min(window.devicePixelRatio || 1, 2),
 
-        showLabels: false,
-        showHoveredPointLabel: false,
+        pointLabelBy: "label",
+        showLabels: true,
+        showLabelsFor: prepared.labelIds,
+        showHoveredPointLabel: true,
+        showUnselectedPointLabels: true,
+        pointLabelColor: "#e6efff",
+        pointLabelFontSize: 12,
 
         fitViewOnInit: true,
         fitViewDelay: 0,
@@ -150,6 +183,10 @@ export default function Home() {
 
         onPointClick: (index) => {
           if (graph === null) return;
+          const details = prepared.nodeDetails.get(index);
+          setSelection(details ?? null);
+          setSelectedNodeId(null);
+          if (details) return;
 
           graph.selectPoints([index], false, false);
           selectedSizeRef.current?.([index]);
@@ -158,7 +195,7 @@ export default function Home() {
             .getPointIdsByIndices([index])
             .then((ids) => {
               const id = ids?.[0];
-              if (id !== undefined) {
+              if (id !== undefined && /^\d+$/.test(String(id))) {
                 const nodeId = String(id);
                 setSelectedNodeId(nodeId);
               }
@@ -170,7 +207,14 @@ export default function Home() {
           if (abort.signal.aborted) return;
 
           setError(false);
-          setStatus(`${pointsCount.toLocaleString()} nodes`);
+          setStatus(`${pointsCount.toLocaleString()} nodes · ${prepared.links?.numRows ?? 0} connections`);
+          if (!fitted && graph && prepared.personal.length) {
+            fitted = true;
+            graph.fitViewByIndices(prepared.personal, 500, 0.25);
+            setSelectionMessage(prepared.missing.length
+              ? `Missing map coordinates: ${prepared.missing.join(", ")}`
+              : "");
+          }
         },
 
         onGraphRebuildError: fail,
@@ -191,11 +235,9 @@ export default function Home() {
           .setConfig({
             ...config,
             pointSizeStrategy: undefined,
-            pointSizeBy: "appid",
-            pointSizeByFn: (_value: unknown, index?: number) =>
-              index !== undefined && selectedPointIndicesRef.current.has(index)
-                ? 12
-                : 3,
+            pointSizeBy: "size",
+            pointSizeByFn: pointSize,
+            pointSizeScale: sizeScale,
           })
           .catch(fail);
       };
@@ -208,6 +250,7 @@ export default function Home() {
       sizeRef.current = (value: number): void => {
         if (abort.signal.aborted) return;
 
+        sizeScale = value / 3;
         // Handles both synchronous and asynchronous
         // setConfig implementations.
         void (async (): Promise<void> => {
@@ -237,7 +280,7 @@ export default function Home() {
         void graph.destroy();
       }
     };
-  }, []);
+  }, [connectionData]);
 
   return (
     <main
@@ -263,6 +306,10 @@ export default function Home() {
       >
         {status}
       </div>
+
+      <Connections onData={receiveData} />
+
+      {selection && <ConnectionDetails selection={selection} onClose={() => setSelection(null)} />}
 
       <SideBar
         selectedNodeId={selectedNodeId}

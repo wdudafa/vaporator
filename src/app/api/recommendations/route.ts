@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(games.map(game => game.appid)),
-      //signal: AbortSignal.timeout(20000),
+      signal: AbortSignal.timeout(60000),
     });
     if (!response.ok) {
       const body = await response.json().catch(() => ({}));
@@ -28,6 +28,21 @@ export async function GET(request: NextRequest) {
         ? `Games missing from the similarity database: ${missing.join(", ")}.`
         : `Game API returned HTTP ${response.status}: ${JSON.stringify(body.detail ?? "Unknown error")}` }, { status: 502 });
     }
+    const connectionsResponse = await fetch(`${apiUrl}/connections`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        appids: games.map(game => game.appid),
+        minutes: games.map(game => game.playtime_forever),
+        weighted: request.nextUrl.searchParams.get("weighted") === "true",
+      }),
+      signal: AbortSignal.timeout(60000),
+    });
+    if (!connectionsResponse.ok) {
+      const detail = await connectionsResponse.json().catch(() => ({}));
+      return NextResponse.json({ error: `Connections unavailable: ${JSON.stringify(detail.detail ?? connectionsResponse.status)}` }, { status: 502 });
+    }
+    const connections = await connectionsResponse.json();
     const matches: { appid: number; name: string; similarity: number }[] = await response.json();
     const picks = await Promise.all(matches.map(async game => {
       const details = await fetch(`https://store.steampowered.com/api/appdetails?appids=${game.appid}&cc=gb&l=english`, {
@@ -45,8 +60,9 @@ export async function GET(request: NextRequest) {
       };
     }));
     return NextResponse.json({
+      connections,
       profile: { name: user.username, avatar: user.avatarUrl }, picks,
-      basedOn: games.map(game => ({ name: game.name, hours: Math.round(game.playtime_forever / 60) })),
+      basedOn: games.map(game => ({ appid: game.appid, name: game.name, minutes: game.playtime_forever, hours: Math.round(game.playtime_forever / 60) })),
     });
   } catch (error) {
     console.error(`${stage} failed`, error);

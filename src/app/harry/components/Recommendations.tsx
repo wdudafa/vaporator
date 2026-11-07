@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 
 type Pick = {
   appId: number;
@@ -21,13 +22,12 @@ export default function Recommendations({ steamId }: { steamId: string }) {
 
   useEffect(() => {
     const controller = new AbortController();
-    setPicks(null);
-    setError("");
     fetch(`/api/recommendations?username=${encodeURIComponent(steamId)}`, { signal: controller.signal })
       .then(async response => {
         const data = await response.json();
         if (!response.ok) throw new Error(data.error || "Could not load recommendations.");
         setPicks(data.picks);
+        sessionStorage.setItem(`recommendations:${steamId}:false`, JSON.stringify(data));
       })
       .catch(error => { if (!controller.signal.aborted) setError(error.message); });
     return () => controller.abort();
@@ -40,9 +40,13 @@ export default function Recommendations({ steamId }: { steamId: string }) {
       {!picks && !error && <p className="text-gray-500">Finding similar games…</p>}
       {error && <div role="alert">
         <p>{error}</p>
-        <button className="mt-2 text-blue-600 underline" onClick={() => setAttempt(n => n + 1)}>Try again</button>
+        <button className="mt-2 text-blue-600 underline" onClick={() => { setPicks(null); setError(""); setAttempt(n => n + 1); }}>Try again</button>
       </div>}
       {picks?.length === 0 && <p>No recommendations found.</p>}
+      {!!picks?.length && <Link
+        href={`/wari/?username=${encodeURIComponent(steamId)}`}
+        className="mb-6 inline-block rounded bg-blue-600 px-5 py-3 font-medium text-white hover:bg-blue-700"
+      >Visualize</Link>}
       <div className="space-y-5">
         {picks?.map(game => (
           <article key={game.appId} className="overflow-hidden rounded-lg bg-gray-50 dark:bg-gray-800 shadow-sm">
