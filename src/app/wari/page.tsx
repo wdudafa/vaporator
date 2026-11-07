@@ -6,6 +6,7 @@ import type {
   Cosmograph as CosmographInstance,
   CosmographConfig,
 } from "@cosmograph/cosmograph";
+import SideBar from "./components/SideBar";
 
 const overlay: CSSProperties = {
   position: "absolute",
@@ -237,61 +238,11 @@ export default function Home() {
         {status}
       </div>
 
-      <aside
-        className="node-details-panel"
-        aria-label="Selected node"
-        aria-hidden={selectedNodeId === null}
-        inert={selectedNodeId === null}
-        style={{
-          ...overlay,
-          zIndex: 2,
-          top: 64,
-          right: 12,
-          bottom: 76,
-          width: "min(320px, calc(100vw - 24px))",
-          boxSizing: "border-box",
-          padding: 16,
-          opacity: selectedNodeId === null ? 0 : 1,
-          transform:
-            selectedNodeId === null
-              ? "translateX(calc(100% + 12px))"
-              : "translateX(0)",
-          visibility: selectedNodeId === null ? "hidden" : "visible",
-          transition:
-            selectedNodeId === null
-              ? "transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1), opacity 180ms ease, visibility 0s linear 220ms"
-              : "transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1), opacity 180ms ease, visibility 0s",
-        }}
-      >
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            gap: 12,
-          }}
-        >
-          <h2 style={{ margin: 0, fontSize: 16 }}>Node details</h2>
-          <button
-            type="button"
-            aria-label="Close node details"
-            style={{
-              cursor: "pointer",
-              borderRadius: 6,
-              padding: "4px 8px",
-              background: "#1a2a40",
-              color: "#e6efff",
-            }}
-            onClick={() => setSelectedNodeId(null)}
-          >
-            Close
-          </button>
-        </div>
-        <p style={{ margin: "20px 0 6px", color: "#9eafc5" }}>Node ID</p>
-        <code style={{ overflowWrap: "anywhere", color: "#79e2d1" }}>
-          {selectedNodeId ?? ""}
-        </code>
-      </aside>
+      
+      <SideBar
+  selectedNodeId={selectedNodeId}
+  onClose={() => setSelectedNodeId(null)}
+/>
 
       <footer
         style={{
