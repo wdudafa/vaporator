@@ -45,8 +45,8 @@ export default function Home() {
     }
 
     const ids = [...new Set(nodeIdsInput.split(/[,\s]+/).filter(Boolean))];
-    if (ids.length === 0) {
-      setSelectionMessage("Enter one or more node IDs.");
+    if (ids.length <= 1) {
+      setSelectionMessage("Enter two or more node IDs.");
       return;
     }
 
@@ -153,7 +153,6 @@ export default function Home() {
 
           graph.selectPoints([index], false, false);
           selectedSizeRef.current?.([index]);
-          graph.fitViewByIndices([index], 500, 0.15);
 
           void graph
             .getPointIdsByIndices([index])
@@ -162,7 +161,6 @@ export default function Home() {
               if (id !== undefined) {
                 const nodeId = String(id);
                 setSelectedNodeId(nodeId);
-                setNodeIdsInput(nodeId);
               }
             })
             .catch(fail);
