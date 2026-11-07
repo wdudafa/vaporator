@@ -37,8 +37,26 @@ export default function Home() {
     });
   }, []);
 
+  const highlightNodes = () => {
+    console.log("highlighting blue nodes");
+  };
+
   return (
     <main className="relative h-screen w-full">
+      <aside
+        aria-hidden={openSideBar === null}
+        className={`absolute left-0 top-0 z-10 h-full w-72 bg-zinc-900 transition-transform duration-300 ease-in-out`}
+      >
+        <button
+          className="bg-red-400"
+          onClick={() => {
+            highlightNodes();
+          }}
+        >
+          Highlight the blue nodes
+        </button>
+      </aside>
+
       <aside
         aria-hidden={openSideBar === null}
         className={`absolute right-0 top-0 z-10 h-full w-72 bg-zinc-900 transition-transform duration-300 ease-in-out ${
@@ -57,7 +75,6 @@ export default function Home() {
           nodeAutoColorBy="id"
           nodeLabel="id"
           onNodeClick={(node) => {
-            console.log(node.id);
             setOpenSidebar(String(node.id));
           }}
           enableNodeDrag
