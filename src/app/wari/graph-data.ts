@@ -44,7 +44,6 @@ export function prepareGraph(coordinates: ArrayBuffer, data: ConnectionData | nu
   const labels = ids.map(() => "");
   const colors: string[] = ids.map(() => "#63769c");
   const sizes: number[] = ids.map(() => 3);
-  const personal = new Set<number>();
   const sources: number[] = [], targets: number[] = [], linkColors: string[] = [];
   const widths: number[] = [], styles: number[] = [];
   const missing = new Set<string>();
@@ -61,13 +60,12 @@ export function prepareGraph(coordinates: ArrayBuffer, data: ConnectionData | nu
     // Retain the source label when a game has several roles.
     if (!labels[index] || !names.has(id)) labels[index] = label;
     if (size >= sizes[index]) { colors[index] = color; sizes[index] = size; }
-    personal.add(index);
   }
   function marker(id: string, label: string, position: number[], detail: ConnectionDetail) {
     const index = ids.length;
     ids.push(id); x.push(position[0]); y.push(position[1]); z.push(position[2]);
     labels.push(label); colors.push("#c4b5fd"); sizes.push(8);
-    indices.set(id, index); personal.add(index);
+    indices.set(id, index);
     nodeDetails.set(index, { title: detail.title, roles: ["Blend position"], connections: [detail] });
     return index;
   }
@@ -124,14 +122,15 @@ export function prepareGraph(coordinates: ArrayBuffer, data: ConnectionData | nu
       const blendLabel = games.map(game => `${game.name} ${(game.weight * 100).toFixed(0)}%`).join(" / ");
       const blend = marker(`blend:${group.appids.join(":")}`, blendLabel, position, blendDetail);
       // No source-to-blend spokes: those overlapped the direct pair edges.
-      group.matches.slice(0, 1).forEach((game, i) => {
-        const target = indices.get(String(game.appid));
-        if (target === undefined) return;
-        const detail: ConnectionDetail = { title: `${title} / ${game.name}`, kind: "Recommendation",
-          description: `Recommendation #${i + 1} for this ${data.connections.weighted ? "playtime-weighted" : "equal"} blend.`,
-          similarity: game.similarity, games, matches: [game] };
-        edge(blend, target, "#f472b6", 1.5, 1, detail);
-      });
+      const best = group.matches[0];
+      const target = best && indices.get(String(best.appid));
+      if (target !== undefined) {
+        edge(blend, target, "#f472b6", 1.5, 1, {
+          title: `${title} / ${best.name}`, kind: "Recommendation",
+          description: `Recommendation #1 for this ${data.connections.weighted ? "playtime-weighted" : "equal"} blend.`,
+          similarity: best.similarity, games, matches: [best],
+        });
+      }
 
     }
   }
@@ -144,7 +143,7 @@ export function prepareGraph(coordinates: ArrayBuffer, data: ConnectionData | nu
     links: sources.length ? new Table({ sourceId: strings(sources.map(index => ids[index])), targetId: strings(targets.map(index => ids[index])),
       source: vectorFromArray(Uint32Array.from(sources)), target: vectorFromArray(Uint32Array.from(targets)),
       color: strings(linkColors), width: numbers(widths), style: numbers(styles) }) : undefined,
-    personal: [...personal], sizes, missing: [...missing], labelIds: [...personal].map(index => ids[index]),
+    sizes, missing: [...missing], labelIds: [...nodeDetails.keys()].map(index => ids[index]),
     nodeDetails, linkDetails,
   };
 }

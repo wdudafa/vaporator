@@ -1,416 +1,154 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
-import type { CSSProperties, FormEvent } from "react";
-import type {
-  Cosmograph as CosmographInstance,
-  CosmographConfig,
-} from "@cosmograph/cosmograph";
+import { useEffect, useRef, useState, type FormEvent } from "react";
+import type { Cosmograph as Graph, CosmographConfig } from "@cosmograph/cosmograph";
 import Connections, { type ConnectionData } from "./components/Connections";
-import { prepareGraph, type GraphSelection } from "./graph-data";
 import ConnectionDetails from "./components/ConnectionDetails";
-import SideBar from "./components/SideBar";
+import { prepareGraph, type GraphSelection } from "./graph-data";
 
-const overlay: CSSProperties = {
-  position: "absolute",
-  zIndex: 1,
-  padding: "8px 12px",
-  borderRadius: 6,
-  background: "#101a2bd9",
-  fontSize: 12,
-  lineHeight: "18px",
-};
+type Controls = { graph: Graph; highlight: (indices: number[]) => void; resize: (size: number) => void };
+const panel = "absolute z-10 rounded-md bg-[#101a2bd9] px-3 py-2 text-xs leading-[18px]";
 
 export default function Home() {
-  const [connectionData, setConnectionData] = useState<ConnectionData | null>(null);
-  const receiveData = useCallback((data: ConnectionData) => setConnectionData(data), []);
   const hostRef = useRef<HTMLDivElement>(null);
-  const resetRef = useRef<(() => void) | null>(null);
-  const sizeRef = useRef<((value: number) => void) | null>(null);
-  const selectedSizeRef = useRef<((indices: number[]) => void) | null>(null);
-  const graphRef = useRef<CosmographInstance | null>(null);
-  const selectedPointIndicesRef = useRef(new Set<number>());
-
+  const controls = useRef<Controls | null>(null);
+  const size = useRef(3);
+  const [data, setData] = useState<ConnectionData | null>(null);
   const [status, setStatus] = useState("Loading coordinates…");
   const [error, setError] = useState(false);
-  const [size, setSize] = useState<number>(3);
   const [selection, setSelection] = useState<GraphSelection | null>(null);
-  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
-  const [nodeIdsInput, setNodeIdsInput] = useState("");
-  const [selectionMessage, setSelectionMessage] = useState("");
-
-  const handleHighlightSubmit = async (
-    event: FormEvent<HTMLFormElement>,
-  ): Promise<void> => {
-    event.preventDefault();
-
-    const graph = graphRef.current;
-    if (graph === null) {
-      setSelectionMessage("The graph is not ready yet.");
-      return;
-    }
-
-    const ids = [...new Set(nodeIdsInput.split(/[,\s]+/).filter(Boolean))];
-    if (ids.length <= 1) {
-      setSelectionMessage("Enter two or more node IDs.");
-      return;
-    }
-
-    try {
-      const indices = await graph.getPointIndicesByIds(ids);
-      if (!indices?.length) {
-        setSelectionMessage("No matching node IDs found.");
-        return;
-      }
-
-      graph.selectPoints(indices, false, false);
-      selectedSizeRef.current?.(indices);
-      graph.fitViewByIndices(indices, 500, 0.15);
-
-      const missingCount = ids.length - indices.length;
-      setSelectionMessage(
-        `${indices.length} node${indices.length === 1 ? "" : "s"} highlighted and fitted${
-          missingCount > 0
-            ? `; ${missingCount} ID${missingCount === 1 ? "" : "s"} not found`
-            : ""
-        }.`,
-      );
-    } catch (cause: unknown) {
-      setSelectionMessage(
-        cause instanceof Error ? cause.message : "Unable to highlight nodes.",
-      );
-    }
-  };
+  const [nodeIds, setNodeIds] = useState("");
+  const [message, setMessage] = useState("");
 
   useEffect(() => {
     const host = hostRef.current;
     if (!host) return;
-
     const abort = new AbortController();
-    let graph: CosmographInstance | null = null;
-
-    const fail = (cause: unknown): void => {
+    let graph: Graph | null = null;
+    const fail = (cause: unknown) => {
       if (abort.signal.aborted) return;
-
       setError(true);
-      setStatus(
-        cause instanceof Error ? cause.message : "Unable to start Cosmograph.",
-      );
+      setStatus(cause instanceof Error ? cause.message : "Unable to load the graph.");
     };
 
-    const start = async (): Promise<void> => {
+    async function start(host: HTMLDivElement) {
       const [{ Cosmograph }, response] = await Promise.all([
-        import("@cosmograph/cosmograph"),
-        fetch("/will/data", {
-          signal: abort.signal,
-        }),
+        import("@cosmograph/cosmograph"), fetch("/will/data", { signal: abort.signal }),
       ]);
-
-      if (!response.ok) {
-        throw new Error(`Could not load coordinates (${response.status}).`);
-      }
-
-      const points: ArrayBuffer = await response.arrayBuffer();
-
+      if (!response.ok) throw new Error(`Could not load coordinates (${response.status}).`);
+      const points = await response.arrayBuffer();
       if (abort.signal.aborted) return;
-
-      setStatus("Preparing points and connections…");
-      const prepared = prepareGraph(points, connectionData);
-      selectedPointIndicesRef.current = new Set();
-      let fitted = false;
-      let sizeScale = 1;
-      const pointSize = (_value: unknown, index?: number) =>
-        Math.max(index === undefined ? 3 : prepared.sizes[index] ?? 3,
-          index !== undefined && selectedPointIndicesRef.current.has(index) ? 12 : 0);
+      const prepared = prepareGraph(points, data);
+      let highlighted = new Set<number>();
+      const pointSize = (_value: unknown, index?: number) => Math.max(
+        index === undefined ? 3 : prepared.sizes[index] ?? 3,
+        index !== undefined && highlighted.has(index) ? 12 : 0,
+      );
+      setSelection(null);
+      setMessage(prepared.missing.length ? `Missing map coordinates: ${prepared.missing.join(", ")}` : "");
 
       const config: CosmographConfig = {
-        points: prepared.points,
-        links: prepared.links,
-        linkSourceBy: "sourceId",
-        linkTargetBy: "targetId",
-        linkSourceIndexBy: "source",
-        linkTargetIndexBy: "target",
-        linkColorBy: "color",
-        linkColorStrategy: "direct",
-        linkWidthBy: "width",
-        linkWidthByFn: (value: unknown) => Number(value),
-        linkDefaultWidth: 2,
-        linkStyleBy: "style",
-        linkDefaultArrows: false,
-        onLinkClick: (index) => {
+        points: prepared.points, links: prepared.links,
+        pointIdBy: "appid", pointIndexBy: "index",
+        pointXBy: "x", pointYBy: "y", pointZBy: "z",
+        pointColorBy: "color", pointColorStrategy: "direct",
+        pointSizeBy: "size", pointSizeByFn: pointSize, pointSizeScale: size.current / 3,
+        pointSphereShading: true, pointDepthFade: 0.15,
+        linkSourceBy: "sourceId", linkTargetBy: "targetId",
+        linkSourceIndexBy: "source", linkTargetIndexBy: "target",
+        linkColorBy: "color", linkColorStrategy: "direct",
+        linkWidthBy: "width", linkWidthByFn: Number, linkStyleBy: "style", linkDefaultArrows: false,
+        spaceDimensions: 3, enableSimulation: false, enableDrag: false,
+        backgroundColor: "#080d18", pixelRatio: Math.min(window.devicePixelRatio || 1, 2),
+        pointLabelBy: "label", showLabels: true, showLabelsFor: prepared.labelIds,
+        showHoveredPointLabel: true, showUnselectedPointLabels: true,
+        pointLabelColor: "#e6efff", pointLabelFontSize: 12,
+        fitViewOnInit: true, fitViewDelay: 0, fitViewDuration: 0, fitViewPadding: 0.06,
+        onLinkClick: index => {
           const detail = prepared.linkDetails[index];
-          if (!detail) return;
-          setSelectedNodeId(null);
-          setSelection({ title: detail.title, roles: [detail.kind], connections: [detail] });
+          if (detail) setSelection({ title: detail.title, roles: [detail.kind], connections: [detail] });
         },
         onLinkMouseOver: () => { host.style.cursor = "pointer"; },
         onLinkMouseOut: () => { host.style.cursor = "default"; },
-        pointIdBy: "appid",
-        pointIndexBy: "index",
-        pointXBy: "x",
-        pointYBy: "y",
-        pointZBy: "z",
-
-        spaceDimensions: 3,
-        enableSimulation: false,
-        enableDrag: false,
-
-        backgroundColor: "#080d18",
-
-        pointColorBy: "color",
-        pointColorStrategy: "direct",
-        pointSizeBy: "size",
-        pointSizeByFn: pointSize,
-        pointDefaultSize: 3,
-        pointSizeScale: 1,
-        pointSphereShading: true,
-        pointDepthFade: 0.15,
-
-        pixelRatio: Math.min(window.devicePixelRatio || 1, 2),
-
-        pointLabelBy: "label",
-        showLabels: true,
-        showLabelsFor: prepared.labelIds,
-        showHoveredPointLabel: true,
-        showUnselectedPointLabels: true,
-        pointLabelColor: "#e6efff",
-        pointLabelFontSize: 12,
-
-        fitViewOnInit: true,
-        fitViewDelay: 0,
-        fitViewDuration: 0,
-        fitViewPadding: 0.06,
-
-        onPointClick: (index) => {
-          if (graph === null) return;
+        onPointClick: index => {
           const details = prepared.nodeDetails.get(index);
-          setSelection(details ?? null);
-          setSelectedNodeId(null);
-          if (details) return;
-
-          graph.selectPoints([index], false, false);
-          selectedSizeRef.current?.([index]);
-
-          void graph
-            .getPointIdsByIndices([index])
-            .then((ids) => {
-              const id = ids?.[0];
-              if (id !== undefined && /^\d+$/.test(String(id))) {
-                const nodeId = String(id);
-                setSelectedNodeId(nodeId);
-              }
-            })
-            .catch(fail);
+          if (details) return setSelection(details);
+          const appid = String(prepared.points.getChild("appid")?.get(index));
+          if (!/^\d+$/.test(appid)) return;
+          graph?.selectPoints([index], false, false);
+          controls.current?.highlight([index]);
+          setSelection({ title: "Game details", appid, roles: [], connections: [] });
         },
-
         onGraphRebuilt: ({ pointsCount }) => {
           if (abort.signal.aborted) return;
-
           setError(false);
-          setStatus(`${pointsCount.toLocaleString()} nodes · ${prepared.links?.numRows ?? 0} connections${connectionData?.connections.layout ? " · 3D projection; cosine scores in details" : ""}`);
-          if (!fitted && graph && prepared.personal.length) {
-            fitted = true;
-            graph.fitView(500, 0.06);
-            setSelectionMessage(prepared.missing.length
-              ? `Missing map coordinates: ${prepared.missing.join(", ")}`
-              : "");
-          }
+          setStatus(`${pointsCount.toLocaleString()} nodes · ${prepared.links?.numRows ?? 0} connections${data?.connections.layout ? " · 3D projection; cosine scores in details" : ""}`);
         },
-
         onGraphRebuildError: fail,
       };
-
-      // Capture the instance so callbacks cannot reference
-      // a possibly undefined graph.
-      const instance: CosmographInstance = new Cosmograph(host, config);
-
+      const instance = new Cosmograph(host, config);
       graph = instance;
-      graphRef.current = instance;
-
-      selectedSizeRef.current = (indices): void => {
+      function update(patch: CosmographConfig) {
         if (abort.signal.aborted) return;
-
-        selectedPointIndicesRef.current = new Set(indices);
-        void instance
-          .setConfig({
-            ...config,
-            pointSizeStrategy: undefined,
-            pointSizeBy: "size",
-            pointSizeByFn: pointSize,
-            pointSizeScale: sizeScale,
-          })
-          .catch(fail);
-      };
-
-      resetRef.current = (): void => {
-        if (abort.signal.aborted) return;
-        instance.fitView(250, 0.06);
-      };
-
-      sizeRef.current = (value: number): void => {
-        if (abort.signal.aborted) return;
-
-        sizeScale = value / 3;
-        // Handles both synchronous and asynchronous
-        // setConfig implementations.
-        void (async (): Promise<void> => {
-          try {
-            await instance.setConfig({
-              ...config,
-              pointSizeScale: value / 3,
-            });
-          } catch (cause: unknown) {
-            fail(cause);
-          }
-        })();
-      };
-    };
-
-    void start().catch(fail);
-
-    return () => {
-      abort.abort();
-
-      resetRef.current = null;
-      sizeRef.current = null;
-      selectedSizeRef.current = null;
-      graphRef.current = null;
-
-      if (graph !== null) {
-        void graph.destroy();
+        Object.assign(config, patch);
+        void instance.setConfig({ ...config }).catch(fail);
       }
-    };
-  }, [connectionData]);
+      controls.current = {
+        graph: instance,
+        highlight: indices => {
+          highlighted = new Set(indices);
+          // A new accessor tells Cosmograph to recalculate sizes after selection.
+          update({ pointSizeByFn: (value: unknown, index?: number) => pointSize(value, index) });
+        },
+        resize: value => update({ pointSizeScale: value / 3 }),
+      };
+    }
+    void start(host).catch(fail);
+    return () => { abort.abort(); controls.current = null; void graph?.destroy(); };
+  }, [data]);
 
-  return (
-    <main
-      style={{
-        position: "fixed",
-        inset: 0,
-        overflow: "hidden",
-        background: "#080d18",
-        color: "#e6efff",
-      }}
-    >
-      <div ref={hostRef} style={{ position: "absolute", inset: 0 }} />
+  async function highlight(event: FormEvent) {
+    event.preventDefault();
+    const current = controls.current;
+    if (!current) return setMessage("The graph is not ready yet.");
+    const ids = [...new Set(nodeIds.split(/[,\s]+/).filter(Boolean))];
+    if (ids.length < 2) return setMessage("Enter two or more node IDs.");
+    try {
+      const indices = await current.graph.getPointIndicesByIds(ids);
+      if (!indices?.length) return setMessage("No matching node IDs found.");
+      current.graph.selectPoints(indices, false, false);
+      current.highlight(indices);
+      current.graph.fitViewByIndices(indices, 500, 0.15);
+      setMessage(`${indices.length} nodes highlighted; ${ids.length - indices.length} IDs not found.`);
+    } catch (cause) {
+      setMessage(cause instanceof Error ? cause.message : "Unable to highlight nodes.");
+    }
+  }
 
-      <div
-        role={error ? "alert" : "status"}
-        style={{
-          ...overlay,
-          top: 12,
-          left: 12,
-          pointerEvents: "none",
-          color: error ? "#ffadad" : "#79e2d1",
-        }}
-      >
-        {status}
+  return <main className="fixed inset-0 overflow-hidden bg-[#080d18] text-[#e6efff]">
+    <div ref={hostRef} className="absolute inset-0" />
+    <div role={error ? "alert" : "status"} className={`${panel} top-3 left-3 pointer-events-none`}
+      style={{ color: error ? "#ffadad" : "#79e2d1" }}>{status}</div>
+    <Connections onData={setData} />
+    {selection && <ConnectionDetails selection={selection} onClose={() => setSelection(null)} />}
+    <footer className={`${panel} bottom-3 left-3 right-3 flex flex-wrap items-center justify-between gap-3`}>
+      <p className="text-[#9eafc5]">Drag to orbit · Scroll to zoom · Shift-drag to pan</p>
+      <form onSubmit={highlight} className="flex flex-wrap items-center gap-2">
+        <label htmlFor="node-ids">Node IDs</label>
+        <input id="node-ids" value={nodeIds} placeholder="IDs, comma-separated" onChange={event => setNodeIds(event.target.value)} />
+        <button className="bg-green-900" type="submit">Highlight &amp; fit</button>
+        <button className="bg-red-900" type="button" onClick={() => {
+          controls.current?.graph.unselectAllPoints(); controls.current?.highlight([]); setMessage("Node highlights cleared.");
+        }}>Clear highlights</button>
+        {message && <span role="status">{message}</span>}
+      </form>
+      <div className="flex items-center gap-3">
+        <label htmlFor="point-size">Point size</label>
+        <input id="point-size" type="range" min={1} max={8} step={0.5} defaultValue={3} className="w-[90px] accent-[#79e2d1]"
+          onChange={event => { size.current = Number(event.target.value); controls.current?.resize(size.current); }} />
+        <button type="button" className="rounded-md border border-[#405570] bg-[#1a2a40] px-2.5 py-1.5"
+          onClick={() => controls.current?.graph.fitView(250, 0.06)}>Reset view</button>
       </div>
-
-      <Connections onData={receiveData} />
-
-      {selection && <ConnectionDetails selection={selection} onClose={() => setSelection(null)} />}
-
-      <SideBar
-        selectedNodeId={selectedNodeId}
-        onClose={() => setSelectedNodeId(null)}
-      />
-
-      <footer
-        style={{
-          ...overlay,
-          bottom: 12,
-          left: 12,
-          right: 12,
-          display: "flex",
-          flexWrap: "wrap",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: 12,
-        }}
-      >
-        <p style={{ margin: 0, color: "#9eafc5" }}>
-          Drag to orbit · Scroll to zoom · Shift-drag to pan
-        </p>
-
-        <form
-          onSubmit={handleHighlightSubmit}
-          style={{
-            display: "flex",
-            flexWrap: "wrap",
-            alignItems: "center",
-            gap: 8,
-          }}
-        >
-          <label htmlFor="node-ids">Node IDs</label>
-          <input
-            id="node-ids"
-            type="text"
-            value={nodeIdsInput}
-            placeholder="One or more IDs, comma-separated"
-            onChange={(event) => setNodeIdsInput(event.currentTarget.value)}
-          />
-          <button className="bg-green-900" type="submit">
-            Highlight &amp; fit
-          </button>
-          <button
-            className="bg-red-900"
-            type="button"
-            onClick={() => {
-              graphRef.current?.unselectAllPoints();
-              selectedSizeRef.current?.([]);
-              setSelectionMessage("Node highlights cleared.");
-            }}
-          >
-            Clear highlights
-          </button>
-          {selectionMessage && <span role="status">{selectionMessage}</span>}
-        </form>
-
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 12,
-          }}
-        >
-          <label htmlFor="point-size">Point size</label>
-
-          <input
-            id="point-size"
-            type="range"
-            min={1}
-            max={8}
-            step={0.5}
-            value={size}
-            style={{
-              width: 90,
-              accentColor: "#79e2d1",
-            }}
-            onChange={(event) => {
-              const value = Number(event.currentTarget.value);
-
-              setSize(value);
-              sizeRef.current?.(value);
-            }}
-          />
-
-          <button
-            type="button"
-            style={{
-              cursor: "pointer",
-              border: "1px solid #405570",
-              borderRadius: 6,
-              padding: "6px 10px",
-              background: "#1a2a40",
-              color: "#e6efff",
-            }}
-            onClick={() => resetRef.current?.()}
-          >
-            Reset view
-          </button>
-        </div>
-      </footer>
-    </main>
-  );
+    </footer>
+  </main>;
 }
