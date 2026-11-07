@@ -1,6 +1,6 @@
 const STEAM_API_KEY = process.env.STEAM_API_KEY;
 
-export async function getMostPlayedGameIds(steamId: string, limit: number = 5): Promise<number[]> {
+export async function getMostPlayedGameIds(steamId: string, limit: number = 5): Promise<string> {
   if (!STEAM_API_KEY) {
     throw new Error("Steam API key is not configured in environment variables.");
   }
@@ -11,14 +11,16 @@ export async function getMostPlayedGameIds(steamId: string, limit: number = 5): 
   );
 
   if (!gamesRes.ok) {
-    return [];
+    return JSON.stringify({ steamId, gameIds: [] });
   }
 
   const gamesData = await gamesRes.json();
   const games = gamesData.response?.games || [];
 
-  return games
+  const gameIds: number[] = games
     .sort((a: any, b: any) => b.playtime_forever - a.playtime_forever)
     .slice(0, limit)
     .map((game: any) => game.appid);
+
+  return JSON.stringify({ steamId, gameIds });
 }
