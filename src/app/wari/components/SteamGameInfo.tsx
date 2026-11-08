@@ -181,20 +181,17 @@ export default function SteamGameInfo({ appid }: { appid: string }) {
   // --- Release date -------------------------------------------------------
   const release = formatReleaseDate(game.release_date);
 
-  // --- Who made it --------------------------------------------------------
   const developers = game.developers ?? [];
   const publishers = game.publishers ?? [];
   const sameMaker =
     developers.length > 0 &&
     developers.join("|") === publishers.join("|");
 
-  // --- Platforms ----------------------------------------------------------
   const platforms = Object.entries(game.platforms ?? {})
     .filter(([, available]) => available)
     .map(([platform]) => PLATFORM_LABELS[platform])
     .filter(Boolean);
 
-  // --- Features: keep only the ones players care about --------------------
   const features = (game.categories ?? [])
     .map((category) => FRIENDLY_FEATURES[category.description])
     .filter((label): label is string => Boolean(label));
