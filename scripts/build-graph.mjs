@@ -2,7 +2,7 @@ import { readFile, writeFile } from "node:fs/promises";
 import { positionColor } from "../src/lib/position-color.ts";
 import { Table, tableToIPC, vectorFromArray, Utf8 } from "apache-arrow";
 
-const coordinates = JSON.parse(await readFile(new URL("../coordinates_umap_xyz.json", import.meta.url), "utf8"));
+const coordinates = JSON.parse(await readFile(new URL("../coordinates/coordinates_umap_xyz.json", import.meta.url), "utf8"));
 
 const count = coordinates.length;
 const ids = new Array(count);
