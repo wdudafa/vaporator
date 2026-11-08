@@ -274,6 +274,11 @@ export default function Home() {
         if (frameId === null) frameId = requestAnimationFrame(animateZoom);
       };
 
+      // Hand camera control to dragging before the graph handles the press.
+      host.addEventListener("pointerdown", stopZoom, {
+        capture: true,
+        signal: abort.signal,
+      });
       host.addEventListener("wheel", handleWheel, {
         passive: false,
         capture: true,
