@@ -1,3 +1,4 @@
+import { positionColor } from "@/lib/position-color";
 import { Table, tableFromIPC, vectorFromArray, Utf8 } from "apache-arrow";
 import type { ConnectionData } from "./components/Connections";
 
@@ -35,7 +36,7 @@ export function prepareGraph(
   // Highlights and recommendations use the full map coordinates.
   // API projections are fitted to a different set of games and cannot be mixed in.
   const labels = ids.map(() => "");
-  const colors: string[] = ids.map(() => "#526679");
+  const colors: string[] = ids.map((_, index) => positionColor(x[index], y[index], z[index]));
   const sizes: number[] = ids.map(() => 3);
   const sources: number[] = [],
     targets: number[] = [],
