@@ -51,9 +51,9 @@ const PLATFORM_LABELS: Record<string, string> = {
   linux: "Linux",
 };
 
-// Everything renders inside this fixed-height box. Nothing can grow past it
-// and nothing scrolls: long text is clamped or cut off instead.
-const FRAME = "steam-game-info h-[32rem] w-full overflow-hidden";
+// Grows with its content. The parent panel scrolls vertically if needed;
+// long text wraps rather than forcing a horizontal scroll.
+const FRAME = "steam-game-info w-full min-w-0 break-words";
 
 function formatList(items: string[]): string {
   if (items.length <= 1) return items[0] ?? "";
@@ -82,9 +82,11 @@ function describeScore(score: number): string {
 
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="grid grid-cols-[6.5rem_1fr] gap-x-3">
-      <dt className="text-muted">{label}</dt>
-      <dd className="line-clamp-2 min-w-0">{children}</dd>
+    <div>
+      <dt className="text-muted text-xs font-medium uppercase tracking-wide">
+        {label}
+      </dt>
+      <dd className="min-w-0 break-words">{children}</dd>
     </div>
   );
 }
@@ -208,10 +210,10 @@ export default function SteamGameInfo({ appid }: { appid: string }) {
         />
       )}
 
-      <div className="shrink-0 space-y-1">
-        <h3 className="truncate text-base font-semibold">{game.name}</h3>
+      <div className="space-y-1">
+        <h3 className="text-base font-semibold break-words">{game.name}</h3>
         {(developers.length > 0 || release) && (
-          <p className="text-muted truncate text-sm">
+          <p className="text-muted text-sm break-words">
             {developers.length > 0 && `By ${formatList(developers)}`}
             {developers.length > 0 && release && " · "}
             {release}
@@ -220,16 +222,11 @@ export default function SteamGameInfo({ appid }: { appid: string }) {
       </div>
 
       {description && (
-        <p className="game-description line-clamp-3 shrink-0 text-sm">
-          {description}
-        </p>
+        <p className="game-description text-sm break-words">{description}</p>
       )}
 
       {genres.length > 0 && (
-        <ul
-          className="game-genres flex h-7 shrink-0 flex-wrap gap-2 overflow-hidden"
-          aria-label="Genres"
-        >
+        <ul className="game-genres flex flex-wrap gap-2" aria-label="Genres">
           {genres.map((genre) => (
             <li
               key={genre.description}
@@ -241,7 +238,7 @@ export default function SteamGameInfo({ appid }: { appid: string }) {
         </ul>
       )}
 
-      <dl className="min-h-0 flex-1 space-y-1.5 overflow-hidden text-sm">
+      <dl className="space-y-5 text-sm">
         <Row label="Price">{price}</Row>
 
         {platforms.length > 0 && (
@@ -277,7 +274,7 @@ export default function SteamGameInfo({ appid }: { appid: string }) {
         )}
       </dl>
 
-      <div className="shrink-0">{storeLink}</div>
+      <div>{storeLink}</div>
     </section>
   );
 }
