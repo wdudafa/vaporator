@@ -35,10 +35,7 @@ export default function ConnectionDetails({
         <p>No recommendation connections for this game.</p>
       )}
       {selection.connections.map((detail, i) => (
-        <section
-          key={i}
-          className="connection-detail"
-        >
+        <section key={i} className="connection-detail">
           <p className="connection-detail-kind">{detail.kind}</p>
           <h3>{detail.title}</h3>
           <p>{detail.description}</p>
