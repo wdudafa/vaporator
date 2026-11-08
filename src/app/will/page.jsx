@@ -2,12 +2,6 @@
 
 import { useEffect, useRef, useState } from "react";
 
-// Keep the viewer layout independent of the app's custom CSS loader.
-const overlay = {
-  position: "absolute", zIndex: 1, padding: "8px 12px",
-  borderRadius: 6, background: "#101a2bd9", fontSize: 12, lineHeight: "18px",
-};
-
 export default function WillPage() {
   const hostRef = useRef(null);
   const resetRef = useRef(null);
@@ -46,10 +40,10 @@ export default function WillPage() {
         spaceDimensions: 3,
         enableSimulation: false,
         enableDrag: false,
-        backgroundColor: "#080d18",
+        backgroundColor: "#111b26",
         pointColorBy: "z",
         pointColorStrategy: "continuous",
-        pointColorPalette: ["#79e2d1", "#88baff", "#a69bff"],
+        pointColorPalette: ["#4c6b9e", "#66c0f4", "#c7d5e0"],
         pointSizeStrategy: "single",
         pointDefaultSize: 3,
         pointSphereShading: true,
@@ -86,21 +80,21 @@ export default function WillPage() {
   }, []);
 
   return (
-    <main style={{ position: "fixed", inset: 0, overflow: "hidden", background: "#080d18", color: "#e6efff" }}>
-      <div style={{ position: "absolute", inset: 0 }} ref={hostRef} />
-      <div role={error ? "alert" : "status"} style={{ ...overlay, top: 12, left: 12, pointerEvents: "none", color: error ? "#ffadad" : "#79e2d1" }}>
+    <main className="graph-stage">
+      <div data-graph-canvas ref={hostRef} />
+      <div role={error ? "alert" : "status"} className="graph-panel graph-status" style={{ color: error ? "#f2a5a5" : "var(--accent)" }}>
         {status}
       </div>
-      <footer style={{ ...overlay, bottom: 12, left: 12, right: 12, display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-        <p style={{ margin: 0, color: "#9eafc5" }}>Drag to orbit · Scroll to zoom · Shift-drag to pan</p>
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+      <footer className="graph-panel graph-controls">
+        <p className="text-muted" style={{ margin: 0 }}>Drag to orbit · Scroll to zoom · Shift-drag to pan</p>
+        <div className="graph-control-group">
           <label htmlFor="point-size">Point size</label>
-          <input style={{ width: 90, accentColor: "#79e2d1" }} id="point-size" type="range" min="1" max="8" step="0.5" value={size} onChange={(event) => {
+          <input style={{ width: 90 }} className="accent-[#66c0f4]" id="point-size" type="range" min="1" max="8" step="0.5" value={size} onChange={(event) => {
             const value = Number(event.target.value);
             setSize(value);
             sizeRef.current?.(value);
           }} />
-          <button style={{ cursor: "pointer", border: "1px solid #405570", borderRadius: 6, padding: "6px 10px", background: "#1a2a40", color: "#e6efff" }} type="button" onClick={() => resetRef.current?.()}>Reset view</button>
+          <button className="button button-secondary" type="button" onClick={() => resetRef.current?.()}>Reset view</button>
         </div>
       </footer>
     </main>

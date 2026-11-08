@@ -82,28 +82,17 @@ export default function Connections({
   return (
     <section
       aria-label="Your game connections"
-      style={{
-        position: "absolute",
-        top: 52,
-        left: 12,
-        width: 290,
-        maxWidth: "calc(100vw - 24px)",
-        maxHeight: "50vh",
-        overflow: "auto",
-        background: "#101a2bf2",
-        borderRadius: 8,
-        padding: 16,
-      }}
+      className="graph-panel graph-overlay"
     >
-      <Link href="/harry/" className="underline">
+      <Link href="/harry/" className="text-muted">
         ← Steam profile
       </Link>
-      <h1 className="text-xl font-bold my-2">Your game connections</h1>
-      <p style={{ color: "#79e2d1" }}>Game similarity</p>
-      <p style={{ color: "#f472b6" }}>Closest recommendations</p>
-      <p style={{ color: "#fbbf24" }}>Other recommendations</p>
+      <h1 className="section-heading">Your game connections</h1>
+      <p className="connection-key similarity-key">Game similarity</p>
+      <p className="connection-key closest-key">Closest recommendations</p>
+      <p className="connection-key other-key">Other recommendations</p>
       {data && (
-        <ul className="my-3 text-sm space-y-1">
+        <ul className="connection-games">
           {data.basedOn.map((game) => (
             <li key={game.appid}>
               {game.name} · {(game.minutes / 60).toFixed(1)}h
@@ -111,7 +100,7 @@ export default function Connections({
           ))}
         </ul>
       )}
-      <label className="block my-3">
+      <label className="connection-weight">
         <input
           type="checkbox"
           checked={weighted}

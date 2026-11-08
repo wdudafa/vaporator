@@ -47,7 +47,7 @@ export function prepareGraph(
     z[index] = game.z * 0.7 + 0.5;
   }
   const labels = ids.map(() => "");
-  const colors: string[] = ids.map(() => "#63769c");
+  const colors: string[] = ids.map(() => "#526679");
   const sizes: number[] = ids.map(() => 3);
   const sources: number[] = [],
     targets: number[] = [],
@@ -101,7 +101,7 @@ export function prepareGraph(
     y.push(position[1]);
     z.push(position[2]);
     labels.push(label);
-    colors.push("#c4b5fd");
+    colors.push("#66c0f4");
     sizes.push(8);
     indices.set(id, index);
     nodeDetails.set(index, {
@@ -148,7 +148,7 @@ export function prepareGraph(
         game.name,
         `Most played · ${(game.minutes / 60).toFixed(1)} hours`,
         `${game.name} · ${(game.minutes / 60).toFixed(1)}h`,
-        "#79e2d1",
+        "#66c0f4",
         18,
       ),
     );
@@ -158,7 +158,7 @@ export function prepareGraph(
         game.name,
         "Overall recommendation",
         game.name,
-        "#fbbf24",
+        "#a4d007",
         14,
       ),
     );
@@ -169,7 +169,7 @@ export function prepareGraph(
           game.name,
           `${group.appids.map((id) => names.get(id)).join(" + ")} recommendation #${i + 1}`,
           game.name,
-          i === 0 ? "#f472b6" : "#fbbf24",
+          i === 0 ? "#a4d007" : "#8f98a0",
           i === 0 ? 16 : 12,
         ),
       );
@@ -187,7 +187,7 @@ export function prepareGraph(
         similarity: pair.similarity,
         games: [pair.source, pair.target],
       };
-      edge(a, b, "#79e2d1", 2, 0, detail);
+      edge(a, b, "#66c0f4", 2, 0, detail);
     }
     for (const group of data.connections.groups) {
       const members = group.appids.map((id) => indices.get(String(id)));
@@ -230,7 +230,7 @@ export function prepareGraph(
       const best = group.matches[0];
       const target = best && indices.get(String(best.appid));
       if (target !== undefined) {
-        edge(blend, target, "#f472b6", 1.5, 1, {
+        edge(blend, target, "#a4d007", 1.5, 1, {
           title: `${title} / ${best.name}`,
           kind: "Recommendation",
           description: `Recommendation #1 for this ${data.connections.weighted ? "playtime-weighted" : "equal"} blend.`,

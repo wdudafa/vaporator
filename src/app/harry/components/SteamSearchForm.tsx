@@ -15,26 +15,16 @@ export default function SteamSearchForm() {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="flex gap-2 mb-8">
-      <div className="relative grow">
-        {!username && (
-          <span className="absolute inset-y-0 left-4 flex items-center pointer-events-none text-gray-400 dark:text-gray-500 text-md">
-            Enter Steam username or SteamID...
-          </span>
-        )}
-        <input
-          type="text"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-          className="w-full px-4 py-2 border rounded-lg dark:bg-gray-800 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-transparent text-black dark:text-white"
-        />
-      </div>
-      <button
-        type="submit"
-        className="px-6 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
-      >
-        Search
-      </button>
+    <form onSubmit={handleSubmit} className="profile-search">
+      <label className="sr-only" htmlFor="steam-username">Enter Steam username or SteamID</label>
+      <input
+        id="steam-username"
+        type="text"
+        value={username}
+        placeholder="Enter Steam username or SteamID..."
+        onChange={(e) => setUsername(e.target.value)}
+      />
+      <button type="submit" className="button button-primary">Search</button>
     </form>
   );
 }

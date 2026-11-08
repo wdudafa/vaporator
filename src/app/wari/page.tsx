@@ -14,9 +14,6 @@ type Controls = {
   highlight: (indices: number[]) => void;
   resize: (size: number) => void;
 };
-const panel =
-  "absolute z-10 rounded-md bg-[#101a2bd9] px-3 py-2 text-xs leading-[18px]";
-
 export default function Home() {
   const hostRef = useRef<HTMLDivElement>(null);
   const controls = useRef<Controls | null>(null);
@@ -92,14 +89,14 @@ export default function Home() {
         spaceDimensions: 3,
         enableSimulation: false,
         enableDrag: false,
-        backgroundColor: "#080d18",
+        backgroundColor: "#111b26",
         pixelRatio: Math.min(window.devicePixelRatio || 1, 2),
         pointLabelBy: "label",
         showLabels: true,
         showLabelsFor: prepared.labelIds,
         showHoveredPointLabel: true,
         showUnselectedPointLabels: true,
-        pointLabelColor: "#e6efff",
+        pointLabelColor: "#c7d5e0",
         pointLabelFontSize: 12,
         fitViewOnInit: true,
         fitViewDelay: 0,
@@ -138,7 +135,7 @@ export default function Home() {
           if (abort.signal.aborted) return;
           setError(false);
           setStatus(
-            `${pointsCount.toLocaleString()} nodes · ${prepared.links?.numRows ?? 0} connections${data?.connections.layout ? " · 3D projection; cosine scores in details" : ""}`,
+            `${pointsCount.toLocaleString()} nodes · ${prepared.links?.numRows ?? 0} connections`,
           );
         },
         onGraphRebuildError: fail,
@@ -193,13 +190,19 @@ export default function Home() {
     }
   }
 
+  const clearHighlights = () => {
+    controls.current?.graph.unselectAllPoints();
+    controls.current?.highlight([]);
+    setMessage("Node highlights cleared.");
+  };
+
   return (
-    <main className="fixed inset-0 overflow-hidden bg-[#080d18] text-[#e6efff]">
-      <div ref={hostRef} className="absolute inset-0" />
+    <main className="graph-stage">
+      <div ref={hostRef} data-graph-canvas />
       <div
         role={error ? "alert" : "status"}
-        className={`${panel} top-3 left-3 pointer-events-none`}
-        style={{ color: error ? "#ffadad" : "#79e2d1" }}
+        className="graph-panel graph-status"
+        style={{ color: error ? "#f2a5a5" : "var(--accent)" }}
       >
         {status}
       </div>
@@ -207,19 +210,15 @@ export default function Home() {
       {selection && (
         <ConnectionDetails
           selection={selection}
-          onClose={() => setSelection(null)}
+          onClose={() => {
+            setSelection(null);
+            console.log("hello world");
+            clearHighlights();
+          }}
         />
       )}
-      <footer
-        className={`${panel} bottom-3 left-3 right-3 flex flex-wrap items-center justify-between gap-3`}
-      >
-        <p className="text-[#9eafc5]">
-          Drag to orbit · Scroll to zoom · Shift-drag to pan
-        </p>
-        <form
-          onSubmit={highlight}
-          className="flex flex-wrap items-center gap-2"
-        >
+      <footer className="graph-panel graph-controls">
+        <form onSubmit={highlight} className="graph-control-group">
           <label htmlFor="node-ids">Node IDs</label>
           <input
             id="node-ids"
@@ -227,40 +226,24 @@ export default function Home() {
             placeholder="IDs, comma-separated"
             onChange={(event) => setNodeIds(event.target.value)}
           />
-          <button className="bg-green-900" type="submit">
+          <button className="button button-primary" type="submit">
             Highlight &amp; fit
           </button>
           <button
-            className="bg-red-900"
+            className="button button-secondary"
             type="button"
             onClick={() => {
-              controls.current?.graph.unselectAllPoints();
-              controls.current?.highlight([]);
-              setMessage("Node highlights cleared.");
+              clearHighlights();
             }}
           >
             Clear highlights
           </button>
           {message && <span role="status">{message}</span>}
         </form>
-        <div className="flex items-center gap-3">
-          <label htmlFor="point-size">Point size</label>
-          <input
-            id="point-size"
-            type="range"
-            min={1}
-            max={8}
-            step={0.5}
-            defaultValue={3}
-            className="w-22.5 accent-[#79e2d1]"
-            onChange={(event) => {
-              size.current = Number(event.target.value);
-              controls.current?.resize(size.current);
-            }}
-          />
+        <div className="graph-control-group">
           <button
             type="button"
-            className="rounded-md border border-[#405570] bg-[#1a2a40] px-2.5 py-1.5"
+            className="button button-secondary"
             onClick={() => controls.current?.graph.fitView(250, 0.06)}
           >
             Reset view

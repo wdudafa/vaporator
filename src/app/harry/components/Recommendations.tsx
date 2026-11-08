@@ -34,22 +34,26 @@ export default function Recommendations({ steamId }: { steamId: string }) {
   }, [steamId, attempt]);
 
   return (
-    <section className="mt-10" aria-labelledby="recommendations-title" aria-live="polite">
-      <h3 id="recommendations-title" className="text-xl font-semibold mb-2">Recommended for you</h3>
-      <p className="text-sm text-gray-500 mb-4">Based on your three most played games.</p>
-      {!picks && !error && <p className="text-gray-500">Finding similar games…</p>}
-      {error && <div role="alert">
+    <section className="recommendations" aria-labelledby="recommendations-title" aria-live="polite">
+      <h3 id="recommendations-title" className="section-heading">Recommended for you</h3>
+      <p className="text-muted">Based on your three most played games.</p>
+      {!picks && !error && (
+        <div className="recommendation-list" role="status" aria-label="Finding similar games">
+          <div className="loading-skeleton" aria-hidden="true" />
+        </div>
+      )}
+      {error && <div className="status-card recommendation-error" role="alert">
         <p>{error}</p>
-        <button className="mt-2 text-blue-600 underline" onClick={() => { setPicks(null); setError(""); setAttempt(n => n + 1); }}>Try again</button>
+        <button className="button button-secondary" onClick={() => { setPicks(null); setError(""); setAttempt(n => n + 1); }}>Try again</button>
       </div>}
       {picks?.length === 0 && <p>No recommendations found.</p>}
       {!!picks?.length && <Link
         href={`/wari/?username=${encodeURIComponent(steamId)}`}
-        className="mb-6 inline-block rounded bg-blue-600 px-5 py-3 font-medium text-white hover:bg-blue-700"
+        className="recommendation-link"
       >Visualize</Link>}
-      <div className="space-y-5">
+      <div className="recommendation-list">
         {picks?.map(game => (
-          <article key={game.appId} className="overflow-hidden rounded-lg bg-gray-50 dark:bg-gray-800 shadow-sm">
+          <article key={game.appId} className="recommendation-card">
             {game.image && (
               <Image
                 src={game.image}
@@ -60,15 +64,15 @@ export default function Recommendations({ steamId }: { steamId: string }) {
                 className="h-auto w-full"
               />
             )}
-            <div className="p-4 space-y-3">
+            <div className="recommendation-card-body">
               <div className="flex justify-between gap-4">
-                <h4 className="text-lg font-semibold">{game.name}</h4>
-                <span className="shrink-0">{game.price}</span>
+                <h4>{game.name}</h4>
+                <span className="game-price shrink-0">{game.price}</span>
               </div>
-              {game.description && <p className="text-sm text-gray-600 dark:text-gray-300">{game.description}</p>}
-              {game.tags?.length ? <p className="text-sm text-gray-500">{game.tags.join(" · ")}</p> : null}
-              <p className="text-sm text-gray-500">Cosine similarity: {game.similarity.toFixed(3)}</p>
-              <a href={game.storeUrl} target="_blank" rel="noreferrer" className="inline-block rounded bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">View on Steam ↗</a>
+              {game.description && <p>{game.description}</p>}
+              {game.tags?.length ? <div className="game-tags">{game.tags.map(tag => <span key={tag}>{tag}</span>)}</div> : null}
+              <p>Cosine similarity: {game.similarity.toFixed(3)}</p>
+              <a href={game.storeUrl} target="_blank" rel="noreferrer" className="steam-store-link">View on Steam ↗</a>
             </div>
           </article>
         ))}
