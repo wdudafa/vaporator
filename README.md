@@ -15,5 +15,4 @@ explore how games are connected in an interactive 3D graph.
 - See a player's most played games and recommendations based on
   their playtime and games they choose.
 - Search and select games to explore recommendations and connections.
-- Explore the game catalogue in interactive 3D graph views.
-
+- Explore the game catalogue with an interactive 3D graph.
