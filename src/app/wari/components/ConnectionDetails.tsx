@@ -62,7 +62,7 @@ export default function ConnectionDetails({
   return (
     <aside
       aria-label="Selected connection details"
-      className="graph-panel graph-details"
+      className="graph-panel graph-details overflow-none"
     >
       <button
         onClick={onClose}
