@@ -12,6 +12,7 @@ export interface SteamUserData {
   username: string;
   avatarUrl: string;
   mostPlayedGames: SteamGame[];
+  ownedGames: SteamGame[];
 }
 
 export async function getSteamUserData(identifier: string): Promise<SteamUserData | null> {
@@ -62,5 +63,6 @@ export async function getSteamUserData(identifier: string): Promise<SteamUserDat
     username: player.personaname,
     avatarUrl: player.avatarfull,
     mostPlayedGames,
+    ownedGames: games,
   };
 }

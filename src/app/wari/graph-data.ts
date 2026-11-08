@@ -45,6 +45,7 @@ export function prepareGraph(
   const missing = new Set<string>();
   const nodeDetails = new Map<number, GraphSelection>();
   const linkDetails: ConnectionDetail[] = [];
+  const sourceGames = new Map(data?.basedOn.map((game) => [game.appid, game]));
   const names = new Map(data?.basedOn.map((game) => [game.appid, game.name]));
 
   function highlight(
@@ -186,9 +187,11 @@ export function prepareGraph(
           0,
         ),
       );
-      const title = group.appids.map((id) => names.get(id)).join(" + ");
+      const title = group.appids.length > 3
+        ? `${group.appids.length} selected games`
+        : group.appids.map((id) => names.get(id)).join(" + ");
       const games = group.appids.map((id, i) => {
-        const game = data.basedOn.find((game) => game.appid === id)!;
+        const game = sourceGames.get(id)!;
         return {
           appid: id,
           name: game.name,
@@ -205,9 +208,9 @@ export function prepareGraph(
         games,
         matches: group.matches,
       };
-      const blendLabel = games
-        .map((game) => `${game.name} ${(game.weight * 100).toFixed(0)}%`)
-        .join(" / ");
+      const blendLabel = games.length > 3
+        ? `Blend of ${games.length} games`
+        : games.map((game) => `${game.name} ${(game.weight * 100).toFixed(0)}%`).join(" / ");
       const blend = marker(
         `blend:${group.appids.join(":")}`,
         blendLabel,
