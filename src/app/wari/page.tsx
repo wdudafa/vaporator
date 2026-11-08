@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type {
   Cosmograph as Graph,
   CosmographConfig,
@@ -25,8 +25,6 @@ export default function Home() {
   const [status, setStatus] = useState("Loading coordinates…");
   const [error, setError] = useState(false);
   const [selection, setSelection] = useState<GraphSelection | null>(null);
-  const [nodeIds, setNodeIds] = useState("");
-  const [message, setMessage] = useState("");
   const [highlightStep, setHighlightStep] = useState({ current: 0, total: 0 });
 
   useEffect(() => {
@@ -64,12 +62,6 @@ export default function Home() {
           index !== undefined && highlighted.has(index) ? 12 : 0,
         );
       setSelection(null);
-      setMessage(
-        prepared.missing.length
-          ? `Missing map coordinates: ${prepared.missing.join(", ")}`
-          : "",
-      );
-
       const config: CosmographConfig = {
         points: prepared.points,
         links: prepared.links,
@@ -334,36 +326,19 @@ export default function Home() {
     };
   }, [data]);
 
-  async function highlight(event: FormEvent) {
-    event.preventDefault();
-    const current = controls.current;
-    if (!current) return setMessage("The graph is not ready yet.");
-    const ids = [...new Set(nodeIds.split(/[,\s]+/).filter(Boolean))];
-    if (ids.length < 2) return setMessage("Enter two or more node IDs.");
-    try {
-      const indices = await current.graph.getPointIndicesByIds(ids);
-      if (!indices?.length) return setMessage("No matching node IDs found.");
-      current.graph.selectPoints(indices, false, false);
-      current.highlight(indices);
-      current.cancelCameraZoom();
-      current.setTour(indices);
-      current.graph.fitViewByIndices(indices, 500, 0.15);
-      setMessage(
-        `${indices.length} nodes highlighted; ${ids.length - indices.length} IDs not found.`,
-      );
-    } catch (cause) {
-      setMessage(
-        cause instanceof Error ? cause.message : "Unable to highlight nodes.",
-      );
-    }
-  }
-
-  const clearHighlights = () => {
+  const clearHighlights = useCallback(() => {
     controls.current?.graph.unselectAllPoints();
     controls.current?.highlight([]);
     controls.current?.setTour();
-    setMessage("Node highlights cleared.");
-  };
+  }, []);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") clearHighlights();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [clearHighlights]);
 
   return (
     <main className="graph-stage">
@@ -393,42 +368,6 @@ export default function Home() {
           }}
         />
       )}
-      <footer className="graph-panel graph-controls">
-        <form onSubmit={highlight} className="graph-control-group">
-          <label htmlFor="node-ids">Node IDs</label>
-          <input
-            id="node-ids"
-            value={nodeIds}
-            placeholder="IDs, comma-separated"
-            onChange={(event) => setNodeIds(event.target.value)}
-          />
-          <button className="button button-primary" type="submit">
-            Highlight &amp; fit
-          </button>
-          <button
-            className="button button-secondary"
-            type="button"
-            onClick={() => {
-              clearHighlights();
-            }}
-          >
-            Clear highlights
-          </button>
-          {message && <span role="status">{message}</span>}
-        </form>
-        <div className="graph-control-group">
-          <button
-            type="button"
-            className="button button-secondary"
-            onClick={() => {
-              controls.current?.cancelCameraZoom();
-              controls.current?.graph.fitView(250, 0.06);
-            }}
-          >
-            Reset view
-          </button>
-        </div>
-      </footer>
     </main>
   );
 }
