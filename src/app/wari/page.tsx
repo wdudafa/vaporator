@@ -13,6 +13,7 @@ type Controls = {
   graph: Graph;
   highlight: (indices: number[]) => void;
   resize: (size: number) => void;
+  cancelCameraZoom: () => void;
   nextHighlight: () => void;
   setTour: (indices?: number[]) => void;
 };
@@ -33,6 +34,7 @@ export default function Home() {
     if (!host) return;
     const abort = new AbortController();
     let graph: Graph | null = null;
+    let cancelCameraZoom: (() => void) | null = null;
     const fail = (cause: unknown) => {
       if (abort.signal.aborted) return;
       setError(true);
@@ -96,6 +98,7 @@ export default function Home() {
         spaceDimensions: 3,
         enableSimulation: false,
         enableDrag: false,
+        enableZoom: true,
         backgroundColor: "#111b26",
         pixelRatio: Math.min(window.devicePixelRatio || 1, 2),
         pointLabelBy: "label",
@@ -149,6 +152,133 @@ export default function Home() {
       };
       const instance = new Cosmograph(host, config);
       graph = instance;
+      type CameraGoal = {
+        distance: number;
+        target: [number, number, number];
+      };
+
+      let goal: CameraGoal | null = null;
+      let frameId: number | null = null;
+      let lastFrameTime = 0;
+      let lastWheelTime = 0;
+
+      const stopZoom = () => {
+        if (frameId !== null) cancelAnimationFrame(frameId);
+        frameId = null;
+        goal = null;
+        lastFrameTime = 0;
+      };
+      cancelCameraZoom = stopZoom;
+
+      const animateZoom = (now: number) => {
+        frameId = null;
+        const camera = instance.getCameraState();
+        const destination = goal;
+        if (abort.signal.aborted || !camera || !destination) {
+          stopZoom();
+          return;
+        }
+
+        const dt = lastFrameTime ? Math.min(now - lastFrameTime, 50) : 16;
+        lastFrameTime = now;
+        const alpha = 1 - Math.exp(-Math.max(dt, 0) / 85);
+        const distance =
+          camera.distance + (destination.distance - camera.distance) * alpha;
+        const target: [number, number, number] = [
+          camera.target[0] + (destination.target[0] - camera.target[0]) * alpha,
+          camera.target[1] + (destination.target[1] - camera.target[1]) * alpha,
+          camera.target[2] + (destination.target[2] - camera.target[2]) * alpha,
+        ];
+
+        instance.setCameraState({ distance, target }, 0);
+
+        const distanceError =
+          Math.abs(destination.distance - distance) /
+          Math.max(destination.distance, Number.MIN_VALUE);
+        const targetError = Math.hypot(
+          destination.target[0] - target[0],
+          destination.target[1] - target[1],
+          destination.target[2] - target[2],
+        );
+
+        if (distanceError < 0.0001 && targetError < 0.00001) {
+          instance.setCameraState(destination, 0);
+          goal = null;
+          lastFrameTime = 0;
+          return;
+        }
+
+        if (now - lastWheelTime > 1200) {
+          stopZoom();
+          return;
+        }
+
+        frameId = requestAnimationFrame(animateZoom);
+      };
+
+      const handleWheel = (event: WheelEvent) => {
+        const camera = instance.getCameraState();
+        if (
+          !camera ||
+          !Number.isFinite(camera.distance) ||
+          camera.distance <= 0
+        )
+          return;
+
+        const canvas = host.querySelector("canvas") ?? host;
+        const rect = canvas.getBoundingClientRect();
+        if (rect.width <= 0 || rect.height <= 0) return;
+
+        const pointer: [number, number] = [
+          event.clientX - rect.left,
+          event.clientY - rect.top,
+        ];
+        const point = instance.screenToSpacePosition(pointer, {
+          dimensions: 3,
+        });
+        if (!point || !point.every(Number.isFinite)) return;
+
+        event.preventDefault();
+        event.stopImmediatePropagation();
+
+        const delta =
+          event.deltaY *
+          (event.deltaMode === 1
+            ? 16
+            : event.deltaMode === 2
+              ? rect.height
+              : 1);
+        const factor = Math.exp(Math.max(-120, Math.min(120, delta)) * 0.0018);
+
+        const desired: CameraGoal = goal ?? {
+          distance: camera.distance,
+          target: [...camera.target],
+        };
+        const nextDistance = desired.distance * factor;
+        if (!Number.isFinite(nextDistance) || nextDistance <= 0) return;
+
+        const scale = desired.distance / camera.distance;
+        const ratio = nextDistance / desired.distance;
+        const target: [number, number, number] = [
+          desired.target[0] +
+            (point[0] - camera.target[0]) * scale * (1 - ratio),
+          desired.target[1] +
+            (point[1] - camera.target[1]) * scale * (1 - ratio),
+          desired.target[2] +
+            (point[2] - camera.target[2]) * scale * (1 - ratio),
+        ];
+        if (!target.every(Number.isFinite)) return;
+
+        goal = { distance: nextDistance, target };
+        lastWheelTime = performance.now();
+        if (frameId === null) frameId = requestAnimationFrame(animateZoom);
+      };
+
+      host.addEventListener("wheel", handleWheel, {
+        passive: false,
+        capture: true,
+        signal: abort.signal,
+      });
       function update(patch: CosmographConfig) {
         if (abort.signal.aborted) return;
         Object.assign(config, patch);
@@ -165,6 +295,7 @@ export default function Home() {
           });
         },
         resize: (value) => update({ pointSizeScale: value / 3 }),
+        cancelCameraZoom: stopZoom,
         setTour: (indices) => {
           tour = indices ? [...new Set(indices)] : defaultTour;
           tourCursor = -1;
@@ -192,6 +323,7 @@ export default function Home() {
     void start(host).catch(fail);
     return () => {
       abort.abort();
+      cancelCameraZoom?.();
       controls.current = null;
       void graph?.destroy();
     };
@@ -208,6 +340,7 @@ export default function Home() {
       if (!indices?.length) return setMessage("No matching node IDs found.");
       current.graph.selectPoints(indices, false, false);
       current.highlight(indices);
+      current.cancelCameraZoom();
       current.setTour(indices);
       current.graph.fitViewByIndices(indices, 500, 0.15);
       setMessage(
@@ -282,7 +415,10 @@ export default function Home() {
           <button
             type="button"
             className="button button-secondary"
-            onClick={() => controls.current?.graph.fitView(250, 0.06)}
+            onClick={() => {
+              controls.current?.cancelCameraZoom();
+              controls.current?.graph.fitView(250, 0.06);
+            }}
           >
             Reset view
           </button>
