@@ -1,3 +1,4 @@
+import { positionColor } from "@/lib/position-color";
 import { Table, tableFromIPC, vectorFromArray, Utf8 } from "apache-arrow";
 import type { ConnectionData } from "./components/Connections";
 
@@ -32,22 +33,10 @@ export function prepareGraph(
     z.push(Number(table.getChild("z")!.get(i)));
   }
   const indices = new Map(ids.map((id, index) => [id, index]));
-  // Keep the full map. Personal games share the API's embedding projection;
-  // the rest of the catalogue remains as background context.
-  for (const game of data?.connections.layout ?? []) {
-    const id = String(game.appid);
-    let index = indices.get(id);
-    if (index === undefined) {
-      index = ids.length;
-      indices.set(id, index);
-      ids.push(id);
-    }
-    x[index] = game.x * 0.7 + 0.5;
-    y[index] = game.y * 0.7 + 0.5;
-    z[index] = game.z * 0.7 + 0.5;
-  }
+  // Highlights and recommendations use the full map coordinates.
+  // API projections are fitted to a different set of games and cannot be mixed in.
   const labels = ids.map(() => "");
-  const colors: string[] = ids.map(() => "#526679");
+  const colors: string[] = ids.map((_, index) => positionColor(x[index], y[index], z[index]));
   const sizes: number[] = ids.map(() => 3);
   const sources: number[] = [],
     targets: number[] = [],
@@ -57,6 +46,7 @@ export function prepareGraph(
   const missing = new Set<string>();
   const nodeDetails = new Map<number, GraphSelection>();
   const linkDetails: ConnectionDetail[] = [];
+  const sourceGames = new Map(data?.basedOn.map((game) => [game.appid, game]));
   const names = new Map(data?.basedOn.map((game) => [game.appid, game.name]));
 
   function highlight(
@@ -198,9 +188,11 @@ export function prepareGraph(
           0,
         ),
       );
-      const title = group.appids.map((id) => names.get(id)).join(" + ");
+      const title = group.appids.length > 3
+        ? `${group.appids.length} selected games`
+        : group.appids.map((id) => names.get(id)).join(" + ");
       const games = group.appids.map((id, i) => {
-        const game = data.basedOn.find((game) => game.appid === id)!;
+        const game = sourceGames.get(id)!;
         return {
           appid: id,
           name: game.name,
@@ -217,9 +209,9 @@ export function prepareGraph(
         games,
         matches: group.matches,
       };
-      const blendLabel = games
-        .map((game) => `${game.name} ${(game.weight * 100).toFixed(0)}%`)
-        .join(" / ");
+      const blendLabel = games.length > 3
+        ? `Blend of ${games.length} games`
+        : games.map((game) => `${game.name} ${(game.weight * 100).toFixed(0)}%`).join(" / ");
       const blend = marker(
         `blend:${group.appids.join(":")}`,
         blendLabel,

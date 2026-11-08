@@ -601,6 +601,18 @@ img {
   font-size: 12px;
 }
 
+.graph-highlight-tour {
+  top: 122px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 10px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
 .graph-overlay {
   top: 168px;
   left: 12px;
@@ -894,6 +906,7 @@ img {
   }
 
   .graph-status,
+  .graph-highlight-tour,
   .graph-details {
     top: 66px;
   }
@@ -913,6 +926,14 @@ img {
 }
 
 @media (max-width: 480px) {
+  .graph-highlight-tour {
+    top: 104px;
+    left: auto;
+    right: 12px;
+    transform: none;
+    z-index: 11;
+  }
+
   .subnav nav {
     gap: 12px;
   }
