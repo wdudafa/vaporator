@@ -32,20 +32,8 @@ export function prepareGraph(
     z.push(Number(table.getChild("z")!.get(i)));
   }
   const indices = new Map(ids.map((id, index) => [id, index]));
-  // Keep the full map. Personal games share the API's embedding projection;
-  // the rest of the catalogue remains as background context.
-  for (const game of data?.connections.layout ?? []) {
-    const id = String(game.appid);
-    let index = indices.get(id);
-    if (index === undefined) {
-      index = ids.length;
-      indices.set(id, index);
-      ids.push(id);
-    }
-    x[index] = game.x * 0.7 + 0.5;
-    y[index] = game.y * 0.7 + 0.5;
-    z[index] = game.z * 0.7 + 0.5;
-  }
+  // Highlights and recommendations use the full map coordinates.
+  // API projections are fitted to a different set of games and cannot be mixed in.
   const labels = ids.map(() => "");
   const colors: string[] = ids.map(() => "#526679");
   const sizes: number[] = ids.map(() => 3);
