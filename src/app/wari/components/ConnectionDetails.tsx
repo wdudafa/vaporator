@@ -149,7 +149,9 @@ export default function ConnectionDetails({
             <div>
               <p className="text-sm font-medium">Recommended games</p>
               <ul className="mt-1 space-y-2">
-                {detail.matches.map((match) => {
+                {[...detail.matches]
+  .sort((a, b) => b.similarity - a.similarity)
+  .map((match) => {
                   const percent = toPercent(match.similarity);
                   return (
                     <li
