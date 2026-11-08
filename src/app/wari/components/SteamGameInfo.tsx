@@ -27,11 +27,7 @@ type State =
   | { status: "error"; message: string }
   | { status: "ready"; game: SteamGame };
 
-/**
- * Steam lists dozens of technical "categories". Only these answer questions a
- * player actually has ("Can I play it with friends? With a controller?").
- * Keys are Steam's labels; values are the plain-language wording we show.
- */
+
 const FRIENDLY_FEATURES: Record<string, string> = {
   "Single-player": "Single-player",
   "Multi-player": "Multiplayer",
