@@ -15,3 +15,8 @@ A platform that recommends games to users based on games they already own and re
   their playtime and games they choose.
 - Search and select games to explore recommendations and connections.
 - Explore the game catalogue with an interactive 3D graph.
+
+## Python backend
+
+The Python package, dependency lockfile, data tools, and tests live in [py/](./py/README.md).
+

@@ -1,0 +1,50 @@
+[project]
+name = "games"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "will-x86"}
+]
+requires-python = ">=3.14"
+dependencies = [
+    "numpy>=2.0",
+    "asyncio>=4.0.0",
+    "asyncpg>=0.32.0",
+    "dotenv>=0.9.9",
+    "fastapi>=0.162.2",
+    "pytorch-triton-rocm>=3.5.1 ; sys_platform == 'linux'",
+    "sentence-transformers>=6.2.0",
+    "torch>=2.14.1",
+    "triton-rocm>=3.8.0 ; sys_platform == 'linux'",
+    "uvicorn>=0.54.0",
+    "umap-learn>=0.5.12",
+    "pacmap>=0.9.1",
+]
+
+[project.scripts]
+games = "games:main"
+
+[build-system]
+requires = ["uv_build>=0.13.7,<0.14.0"]
+build-backend = "uv_build"
+
+[[tool.uv.index]]
+name = "pytorch-rocm"
+url = "https://download.pytorch.org/whl/rocm7.2"
+explicit = true
+
+
+[tool.uv.sources]
+torch = [
+  { index = "pytorch-rocm", marker = "sys_platform == 'linux'" },
+]
+torchvision = [
+  { index = "pytorch-rocm", marker = "sys_platform == 'linux'" },
+]
+pytorch-triton-rocm = [
+  { index = "pytorch-rocm", marker = "sys_platform == 'linux'" },
+]
+triton-rocm = [
+  { index = "pytorch-rocm", marker = "sys_platform == 'linux'" },
+]
