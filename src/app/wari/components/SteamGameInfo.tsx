@@ -199,7 +199,6 @@ export default function SteamGameInfo({ appid }: { appid: string }) {
     .map((category) => FRIENDLY_FEATURES[category.description])
     .filter((label): label is string => Boolean(label));
 
-  // --- Description: clamp long text, let people expand ---------------------
   const description = game.short_description ?? "";
   const isLongDescription = description.length > 220;
 
@@ -293,7 +292,6 @@ export default function SteamGameInfo({ appid }: { appid: string }) {
           </Row>
         )}
 
-        {/* Only show publisher separately when it differs from the developer */}
         {publishers.length > 0 && !sameMaker && (
           <Row label="Published by">{formatList(publishers)}</Row>
         )}
