@@ -80,13 +80,27 @@ function describeScore(score: number): string {
   return "Generally unfavorable";
 }
 
-function Row({ label, children }: { label: string; children: React.ReactNode }) {
+function Row({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
   return (
-    <div>
-      <dt className="text-muted text-xs font-medium uppercase tracking-wide">
+    <div style={{ display: "block", width: "100%" }}>
+      <dt
+        className="text-muted text-xs font-medium uppercase tracking-wide"
+        style={{ display: "block" }}
+      >
         {label}
       </dt>
-      <dd className="min-w-0 break-words">{children}</dd>
+      <dd
+        className="min-w-0 break-words"
+        style={{ display: "block", margin: 0 }}
+      >
+        {children}
+      </dd>
     </div>
   );
 }
@@ -238,17 +252,24 @@ export default function SteamGameInfo({ appid }: { appid: string }) {
         </ul>
       )}
 
-      <dl className="space-y-5 text-sm">
+      <dl
+        className="text-sm"
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          gap: "1rem",
+          width: "100%",
+          margin: 0,
+        }}
+      >
+        {" "}
         <Row label="Price">{price}</Row>
-
         {platforms.length > 0 && (
           <Row label="Plays on">{formatList(platforms)}</Row>
         )}
-
         {features.length > 0 && (
           <Row label="Features">{features.join(", ")}</Row>
         )}
-
         {game.metacritic && (
           <Row label="Critic score">
             {game.metacritic.score} out of 100 ·{" "}
@@ -268,7 +289,6 @@ export default function SteamGameInfo({ appid }: { appid: string }) {
             )}
           </Row>
         )}
-
         {publishers.length > 0 && !sameMaker && (
           <Row label="Published by">{formatList(publishers)}</Row>
         )}
