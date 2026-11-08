@@ -376,22 +376,41 @@ export default function Home() {
         <span role="status" aria-live="polite">{highlightStep.current} / {highlightStep.total}</span>
       </div>
       <Connections onData={setData} />
-      <aside className="graph-panel graph-landmarks" aria-label="Map discoveries">
-        <p className="font-semibold">Hey, by the way…</p>
-        <div className="graph-landmark-buttons">
-          {mapLandmarks.map((landmark) => (
-            <button key={landmark.appid} type="button"
-              className="button button-secondary" disabled={!ready}
-              aria-pressed={selection?.appid === String(landmark.appid)}
-              onClick={() => controls.current?.focusGame(landmark.appid)}>
-              <span style={{ color: landmark.color }} aria-hidden="true">● </span>
-              {landmark.label}
-              <span className="text-muted text-sm">{landmark.name}</span>
-            </button>
-          ))}
-        </div>
-        <p className="text-muted text-sm">Three discoveries in the 3D map. Pick one to find it and see why.</p>
-      </aside>
+      <aside
+  className="graph-panel graph-landmarks max-h-[45vh] max-w-full overflow-y-auto overflow-x-hidden p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]"
+  aria-label="Map discoveries"
+>
+    <p className="text-muted text-sm">
+    Three discoveries in the 3D map. Pick one to find it and see why.
+  </p>
+
+
+  <div className="graph-landmark-buttons my-2 flex flex-col gap-2 min-[600px]:flex-row min-[600px]:flex-wrap">
+    {mapLandmarks.map((landmark) => (
+      <button
+        key={landmark.appid}
+        type="button"
+        className="button button-secondary flex min-h-11 w-full min-w-0 items-center gap-2 text-left min-[600px]:w-auto"
+        disabled={!ready}
+        aria-pressed={selection?.appid === String(landmark.appid)}
+        onClick={() => controls.current?.focusGame(landmark.appid)}
+      >
+        <span
+          className="shrink-0"
+          style={{ color: landmark.color }}
+          aria-hidden="true"
+        >
+          ●
+        </span>
+        <span className="flex min-w-0 flex-col">
+          <span>{landmark.label}</span>
+          <span className="text-muted break-words text-sm">{landmark.name}</span>
+        </span>
+      </button>
+    ))}
+  </div>
+
+</aside>
       {selection && (
         <ConnectionDetails
           selection={selection}
