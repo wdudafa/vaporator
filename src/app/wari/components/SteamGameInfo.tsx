@@ -27,7 +27,6 @@ type State =
   | { status: "error"; message: string }
   | { status: "ready"; game: SteamGame };
 
-
 const FRIENDLY_FEATURES: Record<string, string> = {
   "Single-player": "Single-player",
   "Multi-player": "Multiplayer",
@@ -61,7 +60,6 @@ function formatList(items: string[]): string {
 function formatReleaseDate(release?: SteamGame["release_date"]): string | null {
   if (!release?.date) return release?.coming_soon ? "Not announced yet" : null;
   if (release.coming_soon) return `Coming ${release.date}`;
-
   const parsed = new Date(release.date.replace(",", ""));
   if (Number.isNaN(parsed.getTime())) return `Released ${release.date}`;
   return `Released ${parsed.toLocaleDateString(undefined, {
@@ -105,7 +103,6 @@ export default function SteamGameInfo({ appid }: { appid: string }) {
         if (!entry?.success || !entry.data)
           throw new Error("No Steam store details found for this game.");
         const game: SteamGame = entry.data;
-
         if (game.short_description)
           game.short_description =
             new DOMParser().parseFromString(game.short_description, "text/html")
@@ -177,8 +174,7 @@ export default function SteamGameInfo({ appid }: { appid: string }) {
   const developers = game.developers ?? [];
   const publishers = game.publishers ?? [];
   const sameMaker =
-    developers.length > 0 &&
-    developers.join("|") === publishers.join("|");
+    developers.length > 0 && developers.join("|") === publishers.join("|");
 
   const platforms = Object.entries(game.platforms ?? {})
     .filter(([, available]) => available)
