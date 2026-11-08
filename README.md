@@ -4,8 +4,7 @@
   <img src="./src/app/icon.svg" alt="Vaporator icon" width="56" />
 </p>
 
-Vaporator helps Steam players discover games through their play history and
-explore how games are connected in an interactive 3D graph.
+A platform that recommends games to users based on games they already own and reveals some interesting games on steam in the process.
 
 ![Vaporator connection explorer screenshot](./public/screenshot.png)
 
