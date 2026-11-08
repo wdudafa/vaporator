@@ -13,6 +13,8 @@ type Controls = {
   graph: Graph;
   highlight: (indices: number[]) => void;
   resize: (size: number) => void;
+  nextHighlight: () => void;
+  setTour: (indices?: number[]) => void;
 };
 export default function Home() {
   const hostRef = useRef<HTMLDivElement>(null);
@@ -24,6 +26,7 @@ export default function Home() {
   const [selection, setSelection] = useState<GraphSelection | null>(null);
   const [nodeIds, setNodeIds] = useState("");
   const [message, setMessage] = useState("");
+  const [highlightStep, setHighlightStep] = useState({ current: 0, total: 0 });
 
   useEffect(() => {
     const host = hostRef.current;
@@ -49,6 +52,10 @@ export default function Home() {
       if (abort.signal.aborted) return;
       const prepared = prepareGraph(points, data);
       let highlighted = new Set<number>();
+      const defaultTour = [...prepared.nodeDetails.keys()];
+      let tour = defaultTour;
+      let tourCursor = -1;
+      setHighlightStep({ current: 0, total: tour.length });
       const pointSize = (_value: unknown, index?: number) =>
         Math.max(
           index === undefined ? 3 : (prepared.sizes[index] ?? 3),
@@ -158,6 +165,28 @@ export default function Home() {
           });
         },
         resize: (value) => update({ pointSizeScale: value / 3 }),
+        setTour: (indices) => {
+          tour = indices ? [...new Set(indices)] : defaultTour;
+          tourCursor = -1;
+          setHighlightStep({ current: 0, total: tour.length });
+        },
+        nextHighlight: () => {
+          if (!tour.length || abort.signal.aborted) return;
+          tourCursor = (tourCursor + 1) % tour.length;
+          const index = tour[tourCursor];
+          const details = prepared.nodeDetails.get(index);
+          instance.selectPoints([index], false, false);
+          controls.current?.highlight([index]);
+          // Keep the current zoom and orientation while moving to the next node.
+          const duration = window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 600;
+          instance.zoomToPoint(index, duration, 1);
+          setSelection(details ?? {
+            title: "Game details",
+            appid: String(prepared.points.getChild("appid")?.get(index)),
+            roles: [], connections: [],
+          });
+          setHighlightStep({ current: tourCursor + 1, total: tour.length });
+        },
       };
     }
     void start(host).catch(fail);
@@ -179,6 +208,7 @@ export default function Home() {
       if (!indices?.length) return setMessage("No matching node IDs found.");
       current.graph.selectPoints(indices, false, false);
       current.highlight(indices);
+      current.setTour(indices);
       current.graph.fitViewByIndices(indices, 500, 0.15);
       setMessage(
         `${indices.length} nodes highlighted; ${ids.length - indices.length} IDs not found.`,
@@ -193,6 +223,7 @@ export default function Home() {
   const clearHighlights = () => {
     controls.current?.graph.unselectAllPoints();
     controls.current?.highlight([]);
+    controls.current?.setTour();
     setMessage("Node highlights cleared.");
   };
 
@@ -205,6 +236,14 @@ export default function Home() {
         style={{ color: error ? "#f2a5a5" : "var(--accent)" }}
       >
         {status}
+      </div>
+      <div className="graph-panel graph-highlight-tour" aria-label="Highlight navigation">
+        <button type="button" className="button button-secondary"
+          disabled={highlightStep.total === 0}
+          onClick={() => controls.current?.nextHighlight()}>
+          Next highlight →
+        </button>
+        <span role="status" aria-live="polite">{highlightStep.current} / {highlightStep.total}</span>
       </div>
       <Connections onData={setData} />
       {selection && (
