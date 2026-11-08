@@ -65,8 +65,7 @@ function formatList(items: string[]): string {
 function formatReleaseDate(release?: SteamGame["release_date"]): string | null {
   if (!release?.date) return release?.coming_soon ? "Not announced yet" : null;
   if (release.coming_soon) return `Coming ${release.date}`;
-  // Steam sends dates like "12 Mar, 2021". Reformat if we can read it,
-  // otherwise show exactly what Steam gave us.
+
   const parsed = new Date(release.date.replace(",", ""));
   if (Number.isNaN(parsed.getTime())) return `Released ${release.date}`;
   return `Released ${parsed.toLocaleDateString(undefined, {
@@ -110,7 +109,7 @@ export default function SteamGameInfo({ appid }: { appid: string }) {
         if (!entry?.success || !entry.data)
           throw new Error("No Steam store details found for this game.");
         const game: SteamGame = entry.data;
-        // Steam descriptions may contain HTML; display their text safely.
+
         if (game.short_description)
           game.short_description =
             new DOMParser().parseFromString(game.short_description, "text/html")
@@ -152,7 +151,6 @@ export default function SteamGameInfo({ appid }: { appid: string }) {
 
   const { game } = state;
 
-  // --- Price: say what it is, and show the sale clearly -------------------
   const discount = game.price_overview?.discount_percent ?? 0;
   let price: React.ReactNode;
   if (game.is_free) {
@@ -178,7 +176,6 @@ export default function SteamGameInfo({ appid }: { appid: string }) {
     price = "Check the Steam store for pricing";
   }
 
-  // --- Release date -------------------------------------------------------
   const release = formatReleaseDate(game.release_date);
 
   const developers = game.developers ?? [];
