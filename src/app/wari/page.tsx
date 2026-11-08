@@ -8,6 +8,7 @@ import type {
 import Connections, { type ConnectionData } from "./components/Connections";
 import ConnectionDetails from "./components/ConnectionDetails";
 import { prepareGraph, type GraphSelection } from "./graph-data";
+import { mapLandmarks } from "./map-landmarks";
 
 type Controls = {
   graph: Graph;
@@ -16,6 +17,7 @@ type Controls = {
   cancelCameraZoom: () => void;
   nextHighlight: () => void;
   setTour: (indices?: number[]) => void;
+  focusGame: (appid: number) => void;
 };
 export default function Home() {
   const hostRef = useRef<HTMLDivElement>(null);
@@ -24,6 +26,7 @@ export default function Home() {
   const [data, setData] = useState<ConnectionData | null>(null);
   const [status, setStatus] = useState("Loading coordinates…");
   const [error, setError] = useState(false);
+  const [ready, setReady] = useState(false);
   const [selection, setSelection] = useState<GraphSelection | null>(null);
   const [highlightStep, setHighlightStep] = useState({ current: 0, total: 0 });
 
@@ -31,11 +34,13 @@ export default function Home() {
     const host = hostRef.current;
     if (!host) return;
     const abort = new AbortController();
+    setReady(false);
     let graph: Graph | null = null;
     let cancelCameraZoom: (() => void) | null = null;
     const fail = (cause: unknown) => {
       if (abort.signal.aborted) return;
       setError(true);
+      setReady(false);
       setStatus(
         cause instanceof Error ? cause.message : "Unable to load the graph.",
       );
@@ -136,6 +141,7 @@ export default function Home() {
         onGraphRebuilt: ({ pointsCount }) => {
           if (abort.signal.aborted) return;
           setError(false);
+          setReady(true);
           setStatus(
             `${pointsCount.toLocaleString()} nodes · ${prepared.links?.numRows ?? 0} connections`,
           );
@@ -283,6 +289,17 @@ export default function Home() {
       }
       controls.current = {
         graph: instance,
+        focusGame: (appid) => {
+          const entry = [...prepared.nodeDetails].find(([, details]) => details.appid === String(appid));
+          if (!entry) return;
+          const [index, details] = entry;
+          stopZoom();
+          instance.selectPoints([index], false, false);
+          controls.current?.highlight([index]);
+          const duration = window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 600;
+          instance.zoomToPoint(index, duration, 1);
+          setSelection(details);
+        },
         highlight: (indices) => {
           highlighted = new Set(indices);
           // A new accessor tells Cosmograph to recalculate sizes after selection.
@@ -359,6 +376,22 @@ export default function Home() {
         <span role="status" aria-live="polite">{highlightStep.current} / {highlightStep.total}</span>
       </div>
       <Connections onData={setData} />
+      <aside className="graph-panel graph-landmarks" aria-label="Map discoveries">
+        <p className="font-semibold">Hey, by the way…</p>
+        <div className="graph-landmark-buttons">
+          {mapLandmarks.map((landmark) => (
+            <button key={landmark.appid} type="button"
+              className="button button-secondary" disabled={!ready}
+              aria-pressed={selection?.appid === String(landmark.appid)}
+              onClick={() => controls.current?.focusGame(landmark.appid)}>
+              <span style={{ color: landmark.color }} aria-hidden="true">● </span>
+              {landmark.label}
+              <span className="text-muted text-sm">{landmark.name}</span>
+            </button>
+          ))}
+        </div>
+        <p className="text-muted text-sm">Three discoveries in the 3D map. Pick one to find it and see why.</p>
+      </aside>
       {selection && (
         <ConnectionDetails
           selection={selection}

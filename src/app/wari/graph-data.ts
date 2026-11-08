@@ -1,6 +1,7 @@
 import { positionColor } from "@/lib/position-color";
 import { Table, tableFromIPC, vectorFromArray, Utf8 } from "apache-arrow";
 import type { ConnectionData } from "./components/Connections";
+import { mapLandmarks } from "./map-landmarks";
 
 export type ConnectionDetail = {
   title: string;
@@ -14,6 +15,7 @@ export type GraphSelection = {
   title: string;
   roles: string[];
   appid?: string;
+  description?: string;
   connections: ConnectionDetail[];
 };
 
@@ -231,6 +233,16 @@ export function prepareGraph(
           matches: [best],
         });
       }
+    }
+  }
+  for (const landmark of mapLandmarks) {
+    highlight(landmark.appid, landmark.name, landmark.label,
+      `${landmark.label} · ${landmark.name}`, landmark.color, 20);
+    const index = indices.get(String(landmark.appid));
+    if (index !== undefined) {
+      // Keep statistical labels visible even if the game is also a recommendation.
+      labels[index] = `${landmark.label} · ${landmark.name}`;
+      nodeDetails.get(index)!.description = landmark.description;
     }
   }
   const strings = (values: string[]) => vectorFromArray(values, new Utf8());
