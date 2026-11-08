@@ -89,11 +89,18 @@ export default function ConnectionDetails({
         </ul>
       )}
 
+      {selection.description && (
+        <div className="my-3 space-y-2">
+          <p>{selection.description}</p>
+          <p className="text-muted text-sm">Based on distances in this 3D map. The projection can distort similarity; these aren’t ratings of creativity or quality.</p>
+        </div>
+      )}
+
       {selection.appid && (
         <SteamGameInfo key={selection.appid} appid={selection.appid} />
       )}
 
-      {selection.connections.length === 0 && (
+      {selection.connections.length === 0 && !selection.description && (
         <p className="text-muted">
           This game isn’t linked to any recommendations yet.
         </p>
