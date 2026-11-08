@@ -6,13 +6,15 @@ import { usePathname } from "next/navigation";
 const navigation = [
   { href: "/harry/", label: "Profile lookup" },
   { href: "/wari/", label: "Connections" },
-  { href: "/will/", label: "Game universe" },
 ];
 
 function SearchForm({ mobile = false }: { mobile?: boolean }) {
   return (
     <form action="/harry/" method="get" className="site-search">
-      <label className="sr-only" htmlFor={mobile ? "mobile-search" : "site-search"}>
+      <label
+        className="sr-only"
+        htmlFor={mobile ? "mobile-search" : "site-search"}
+      >
         Search a Steam profile
       </label>
       <input
@@ -28,11 +30,7 @@ function SearchForm({ mobile = false }: { mobile?: boolean }) {
   );
 }
 
-export default function SiteShell({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function SiteShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
   return (
@@ -40,25 +38,12 @@ export default function SiteShell({
       <header className="site-header">
         <div className="topbar">
           <Link className="brand" href="/harry/" aria-label="Vaporator home">
-            <span className="brand-mark" aria-hidden="true">V</span>
+            <span className="brand-mark" aria-hidden="true">
+              V
+            </span>
             <span>VAPORATOR</span>
           </Link>
-          <nav className="primary-nav" aria-label="Main navigation">
-            {navigation.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                aria-current={
-                  pathname === item.href.slice(0, -1) ||
-                  pathname.startsWith(item.href)
-                    ? "page"
-                    : undefined
-                }
-              >
-                {item.label}
-              </Link>
-            ))}
-          </nav>
+
           <details className="mobile-menu">
             <summary aria-label="Open navigation menu">
               <span aria-hidden="true" />
@@ -96,7 +81,6 @@ export default function SiteShell({
         </div>
       </header>
       <div className="site-content">{children}</div>
-
     </>
   );
 }

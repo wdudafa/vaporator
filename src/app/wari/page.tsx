@@ -212,7 +212,6 @@ export default function Home() {
           selection={selection}
           onClose={() => {
             setSelection(null);
-            console.log("hello world");
             clearHighlights();
           }}
         />

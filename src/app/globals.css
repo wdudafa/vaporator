@@ -616,7 +616,7 @@ img {
   right: 12px;
   width: 350px;
   max-width: calc(100vw - 24px);
-  max-height: calc(100% - 24px);
+  max-height: calc(100% - 220px);
   overflow: auto;
   padding: 14px;
 }
@@ -896,6 +896,10 @@ img {
   .graph-status,
   .graph-details {
     top: 66px;
+  }
+
+  .graph-details {
+    max-height: max(120px, calc(60% - 120px));
   }
 
   .graph-overlay {
