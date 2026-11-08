@@ -62,7 +62,7 @@ export default function ConnectionDetails({
   return (
     <aside
       aria-label="Selected connection details"
-      className="graph-panel graph-details overflow-none"
+      className="graph-panel graph-details max-h-full min-w-0 overflow-y-auto overflow-x-hidden break-words"
     >
       <button
         onClick={onClose}
@@ -72,7 +72,9 @@ export default function ConnectionDetails({
         Close
       </button>
 
-      <h2 className="text-lg font-semibold pr-14">{selection.title}</h2>
+      <h2 className="text-lg font-semibold pr-14 break-words">
+        {selection.title}
+      </h2>
 
       {selection.roles.length > 0 && (
         <ul className="my-2 flex flex-wrap gap-2" aria-label="Roles">
@@ -106,7 +108,7 @@ export default function ConnectionDetails({
             <p className="connection-detail-kind text-muted text-sm">
               {humanizeKind(detail.kind)}
             </p>
-            <h3 className="font-semibold">{detail.title}</h3>
+            <h3 className="font-semibold break-words">{detail.title}</h3>
           </div>
 
           {detail.description && <p>{detail.description}</p>}
@@ -155,7 +157,7 @@ export default function ConnectionDetails({
                       className="flex items-baseline justify-between gap-3"
                     >
                       <a
-                        className="connection-game-link"
+                        className="connection-game-link min-w-0 break-words"
                         href={`https://store.steampowered.com/app/${match.appid}/`}
                         target="_blank"
                         rel="noreferrer"
@@ -163,7 +165,7 @@ export default function ConnectionDetails({
                         {match.name}
                       </a>
                       <span
-                        className="whitespace-nowrap text-sm font-semibold"
+                        className="shrink-0 whitespace-nowrap text-sm font-semibold"
                         title={matchLabel(percent)}
                       >
                         {percent}% match
